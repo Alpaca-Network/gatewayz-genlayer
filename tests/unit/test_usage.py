@@ -46,6 +46,15 @@ def test_seal_totals():
     assert UsageRecord.from_json(rec.to_json()).seal() == s
 
 
-def test_empty_record_cannot_seal():
-    with pytest.raises(ValueError):
-        UsageRecord("0x" + "11" * 32).seal()
+def test_empty_record_seals_to_zero_root():
+    assert UsageRecord("0x" + "11" * 32).seal()["root"] == "0x" + "00" * 32
+
+
+def test_matches_gatewayz_backend_fixture():
+    # Pinned identically in gatewayz-backend tests/services/test_job_usage.py.
+    rec = UsageRecord("0x" + "ab" * 32)
+    costs = ["0.0123", "0.5", "1", "0.00001", "2.10"]
+    for i in range(5):
+        rec.append({"ts": f"2026-10-05T12:00:0{i}Z", "model": "anthropic/claude-sonnet-5", "provider": "anthropic",
+                    "tokens_in": 1000 + i, "tokens_out": 400 + i, "cost_usd": costs[i], "commit": f"req-{i}"})
+    assert rec.seal()["root"] == "0x9a4ae32bbe8b6ea2a179eb7a2957b58bab2e56e105ccf83fecfd0c8e31fabf8a"

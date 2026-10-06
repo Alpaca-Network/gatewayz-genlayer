@@ -97,6 +97,10 @@ class UsageRecord:
         return [leaf_hash(e) for e in self.entries]
 
     def seal(self) -> dict:
+        """A job with no requests seals to the zero root (same as the Gatewayz API)."""
+        if not self.entries:
+            return {"job_id": self.job_id, "root": "0x" + "00" * 32, "requests": 0,
+                    "tokens_in": 0, "tokens_out": 0, "cost_usd": "0"}
         root = merkle_root(self.leaves)
         return {
             "job_id": self.job_id,

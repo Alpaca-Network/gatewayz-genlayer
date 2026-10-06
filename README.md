@@ -24,6 +24,7 @@ Only the verdict crosses chains, and the money stays on the chain the buyer uses
 | `gzgl/rubric.py` | Rubric canonicalisation. It must hash identically to the contract's, because the escrow rejects a verdict judged against a different rubric. |
 | `rubrics/` | Three templates: `written.json`, `code.json` and `data_extraction.json`. |
 | `scripts/demo.py` | The end-to-end run: `new → fund → work → verify → settle → audit`. |
+| Gatewayz API | Job-scoped keys + sealed usage records: `POST /v1/jobs`, `/close`, `/usage`, `/usage/proof` ([gatewayz-backend#2382](https://github.com/Alpaca-Network/gatewayz-backend/pull/2382), draft). |
 | `scripts/verify_usage.py` | Public audit. Anyone can check a usage record against the on-chain root without a key. |
 
 ## How a verdict is reached
