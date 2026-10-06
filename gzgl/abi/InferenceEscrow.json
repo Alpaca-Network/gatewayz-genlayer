@@ -1,0 +1,576 @@
+[
+ {
+  "type": "constructor",
+  "inputs": [
+   {
+    "name": "_treasury",
+    "type": "address",
+    "internalType": "address"
+   },
+   {
+    "name": "_feeBps",
+    "type": "uint16",
+    "internalType": "uint16"
+   },
+   {
+    "name": "_minDuration",
+    "type": "uint64",
+    "internalType": "uint64"
+   },
+   {
+    "name": "_relayer",
+    "type": "address",
+    "internalType": "address"
+   },
+   {
+    "name": "_bridgeReceiver",
+    "type": "address",
+    "internalType": "address"
+   },
+   {
+    "name": "_genLayerChainId",
+    "type": "uint32",
+    "internalType": "uint32"
+   },
+   {
+    "name": "_verifyContract",
+    "type": "address",
+    "internalType": "address"
+   }
+  ],
+  "stateMutability": "nonpayable"
+ },
+ {
+  "type": "function",
+  "name": "MAX_DURATION",
+  "inputs": [],
+  "outputs": [
+   {
+    "name": "",
+    "type": "uint64",
+    "internalType": "uint64"
+   }
+  ],
+  "stateMutability": "view"
+ },
+ {
+  "type": "function",
+  "name": "MAX_FEE_BPS",
+  "inputs": [],
+  "outputs": [
+   {
+    "name": "",
+    "type": "uint16",
+    "internalType": "uint16"
+   }
+  ],
+  "stateMutability": "view"
+ },
+ {
+  "type": "function",
+  "name": "bridgeReceiver",
+  "inputs": [],
+  "outputs": [
+   {
+    "name": "",
+    "type": "address",
+    "internalType": "address"
+   }
+  ],
+  "stateMutability": "view"
+ },
+ {
+  "type": "function",
+  "name": "credits",
+  "inputs": [
+   {
+    "name": "",
+    "type": "address",
+    "internalType": "address"
+   }
+  ],
+  "outputs": [
+   {
+    "name": "",
+    "type": "uint256",
+    "internalType": "uint256"
+   }
+  ],
+  "stateMutability": "view"
+ },
+ {
+  "type": "function",
+  "name": "expire",
+  "inputs": [
+   {
+    "name": "jobId",
+    "type": "bytes32",
+    "internalType": "bytes32"
+   }
+  ],
+  "outputs": [],
+  "stateMutability": "nonpayable"
+ },
+ {
+  "type": "function",
+  "name": "feeBps",
+  "inputs": [],
+  "outputs": [
+   {
+    "name": "",
+    "type": "uint16",
+    "internalType": "uint16"
+   }
+  ],
+  "stateMutability": "view"
+ },
+ {
+  "type": "function",
+  "name": "genLayerChainId",
+  "inputs": [],
+  "outputs": [
+   {
+    "name": "",
+    "type": "uint32",
+    "internalType": "uint32"
+   }
+  ],
+  "stateMutability": "view"
+ },
+ {
+  "type": "function",
+  "name": "jobs",
+  "inputs": [
+   {
+    "name": "",
+    "type": "bytes32",
+    "internalType": "bytes32"
+   }
+  ],
+  "outputs": [
+   {
+    "name": "buyer",
+    "type": "address",
+    "internalType": "address"
+   },
+   {
+    "name": "seller",
+    "type": "address",
+    "internalType": "address"
+   },
+   {
+    "name": "amount",
+    "type": "uint256",
+    "internalType": "uint256"
+   },
+   {
+    "name": "deadline",
+    "type": "uint64",
+    "internalType": "uint64"
+   },
+   {
+    "name": "status",
+    "type": "uint8",
+    "internalType": "enum InferenceEscrow.Status"
+   },
+   {
+    "name": "score",
+    "type": "uint8",
+    "internalType": "uint8"
+   },
+   {
+    "name": "specHash",
+    "type": "bytes32",
+    "internalType": "bytes32"
+   },
+   {
+    "name": "rubricHash",
+    "type": "bytes32",
+    "internalType": "bytes32"
+   },
+   {
+    "name": "usageRoot",
+    "type": "bytes32",
+    "internalType": "bytes32"
+   },
+   {
+    "name": "verdictRef",
+    "type": "bytes32",
+    "internalType": "bytes32"
+   }
+  ],
+  "stateMutability": "view"
+ },
+ {
+  "type": "function",
+  "name": "minDuration",
+  "inputs": [],
+  "outputs": [
+   {
+    "name": "",
+    "type": "uint64",
+    "internalType": "uint64"
+   }
+  ],
+  "stateMutability": "view"
+ },
+ {
+  "type": "function",
+  "name": "openJob",
+  "inputs": [
+   {
+    "name": "jobId",
+    "type": "bytes32",
+    "internalType": "bytes32"
+   },
+   {
+    "name": "seller",
+    "type": "address",
+    "internalType": "address"
+   },
+   {
+    "name": "deadline",
+    "type": "uint64",
+    "internalType": "uint64"
+   },
+   {
+    "name": "specHash",
+    "type": "bytes32",
+    "internalType": "bytes32"
+   },
+   {
+    "name": "rubricHash",
+    "type": "bytes32",
+    "internalType": "bytes32"
+   }
+  ],
+  "outputs": [],
+  "stateMutability": "payable"
+ },
+ {
+  "type": "function",
+  "name": "processBridgeMessage",
+  "inputs": [
+   {
+    "name": "_sourceChainId",
+    "type": "uint32",
+    "internalType": "uint32"
+   },
+   {
+    "name": "_sourceContract",
+    "type": "address",
+    "internalType": "address"
+   },
+   {
+    "name": "_message",
+    "type": "bytes",
+    "internalType": "bytes"
+   }
+  ],
+  "outputs": [],
+  "stateMutability": "nonpayable"
+ },
+ {
+  "type": "function",
+  "name": "relayer",
+  "inputs": [],
+  "outputs": [
+   {
+    "name": "",
+    "type": "address",
+    "internalType": "address"
+   }
+  ],
+  "stateMutability": "view"
+ },
+ {
+  "type": "function",
+  "name": "settle",
+  "inputs": [
+   {
+    "name": "jobId",
+    "type": "bytes32",
+    "internalType": "bytes32"
+   },
+   {
+    "name": "passed",
+    "type": "bool",
+    "internalType": "bool"
+   },
+   {
+    "name": "score",
+    "type": "uint8",
+    "internalType": "uint8"
+   },
+   {
+    "name": "usageRoot",
+    "type": "bytes32",
+    "internalType": "bytes32"
+   },
+   {
+    "name": "specHash",
+    "type": "bytes32",
+    "internalType": "bytes32"
+   },
+   {
+    "name": "rubricHash",
+    "type": "bytes32",
+    "internalType": "bytes32"
+   },
+   {
+    "name": "verdictRef",
+    "type": "bytes32",
+    "internalType": "bytes32"
+   }
+  ],
+  "outputs": [],
+  "stateMutability": "nonpayable"
+ },
+ {
+  "type": "function",
+  "name": "treasury",
+  "inputs": [],
+  "outputs": [
+   {
+    "name": "",
+    "type": "address",
+    "internalType": "address"
+   }
+  ],
+  "stateMutability": "view"
+ },
+ {
+  "type": "function",
+  "name": "verifyContract",
+  "inputs": [],
+  "outputs": [
+   {
+    "name": "",
+    "type": "address",
+    "internalType": "address"
+   }
+  ],
+  "stateMutability": "view"
+ },
+ {
+  "type": "function",
+  "name": "verifyUsageLeaf",
+  "inputs": [
+   {
+    "name": "jobId",
+    "type": "bytes32",
+    "internalType": "bytes32"
+   },
+   {
+    "name": "leafHash",
+    "type": "bytes32",
+    "internalType": "bytes32"
+   },
+   {
+    "name": "proof",
+    "type": "bytes32[]",
+    "internalType": "bytes32[]"
+   }
+  ],
+  "outputs": [
+   {
+    "name": "",
+    "type": "bool",
+    "internalType": "bool"
+   }
+  ],
+  "stateMutability": "view"
+ },
+ {
+  "type": "function",
+  "name": "withdraw",
+  "inputs": [],
+  "outputs": [],
+  "stateMutability": "nonpayable"
+ },
+ {
+  "type": "event",
+  "name": "JobExpired",
+  "inputs": [
+   {
+    "name": "jobId",
+    "type": "bytes32",
+    "indexed": true,
+    "internalType": "bytes32"
+   }
+  ],
+  "anonymous": false
+ },
+ {
+  "type": "event",
+  "name": "JobOpened",
+  "inputs": [
+   {
+    "name": "jobId",
+    "type": "bytes32",
+    "indexed": true,
+    "internalType": "bytes32"
+   },
+   {
+    "name": "buyer",
+    "type": "address",
+    "indexed": true,
+    "internalType": "address"
+   },
+   {
+    "name": "seller",
+    "type": "address",
+    "indexed": true,
+    "internalType": "address"
+   },
+   {
+    "name": "amount",
+    "type": "uint256",
+    "indexed": false,
+    "internalType": "uint256"
+   },
+   {
+    "name": "deadline",
+    "type": "uint64",
+    "indexed": false,
+    "internalType": "uint64"
+   },
+   {
+    "name": "specHash",
+    "type": "bytes32",
+    "indexed": false,
+    "internalType": "bytes32"
+   },
+   {
+    "name": "rubricHash",
+    "type": "bytes32",
+    "indexed": false,
+    "internalType": "bytes32"
+   }
+  ],
+  "anonymous": false
+ },
+ {
+  "type": "event",
+  "name": "JobSettled",
+  "inputs": [
+   {
+    "name": "jobId",
+    "type": "bytes32",
+    "indexed": true,
+    "internalType": "bytes32"
+   },
+   {
+    "name": "passed",
+    "type": "bool",
+    "indexed": false,
+    "internalType": "bool"
+   },
+   {
+    "name": "score",
+    "type": "uint8",
+    "indexed": false,
+    "internalType": "uint8"
+   },
+   {
+    "name": "usageRoot",
+    "type": "bytes32",
+    "indexed": false,
+    "internalType": "bytes32"
+   },
+   {
+    "name": "verdictRef",
+    "type": "bytes32",
+    "indexed": false,
+    "internalType": "bytes32"
+   },
+   {
+    "name": "fee",
+    "type": "uint256",
+    "indexed": false,
+    "internalType": "uint256"
+   },
+   {
+    "name": "viaBridge",
+    "type": "bool",
+    "indexed": false,
+    "internalType": "bool"
+   }
+  ],
+  "anonymous": false
+ },
+ {
+  "type": "event",
+  "name": "Withdrawn",
+  "inputs": [
+   {
+    "name": "account",
+    "type": "address",
+    "indexed": true,
+    "internalType": "address"
+   },
+   {
+    "name": "amount",
+    "type": "uint256",
+    "indexed": false,
+    "internalType": "uint256"
+   }
+  ],
+  "anonymous": false
+ },
+ {
+  "type": "error",
+  "name": "DeadlineNotReached",
+  "inputs": []
+ },
+ {
+  "type": "error",
+  "name": "DeadlinePassed",
+  "inputs": []
+ },
+ {
+  "type": "error",
+  "name": "InvalidConfig",
+  "inputs": []
+ },
+ {
+  "type": "error",
+  "name": "InvalidJob",
+  "inputs": []
+ },
+ {
+  "type": "error",
+  "name": "JobExists",
+  "inputs": []
+ },
+ {
+  "type": "error",
+  "name": "NotFunded",
+  "inputs": []
+ },
+ {
+  "type": "error",
+  "name": "NothingToWithdraw",
+  "inputs": []
+ },
+ {
+  "type": "error",
+  "name": "TransferFailed",
+  "inputs": []
+ },
+ {
+  "type": "error",
+  "name": "Unauthorized",
+  "inputs": []
+ },
+ {
+  "type": "error",
+  "name": "UntrustedSource",
+  "inputs": []
+ },
+ {
+  "type": "error",
+  "name": "VerdictMismatch",
+  "inputs": []
+ }
+]

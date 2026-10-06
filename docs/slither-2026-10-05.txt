@@ -1,0 +1,24 @@
+INFO:Detectors:
+Detector: timestamp
+InferenceEscrow.openJob(bytes32,address,uint64,bytes32,bytes32) (src/InferenceEscrow.sol#116-137) uses timestamp for comparisons
+	Dangerous comparisons:
+	- deadline < block.timestamp + minDuration || deadline > block.timestamp + MAX_DURATION (src/InferenceEscrow.sol#122)
+InferenceEscrow.expire(bytes32) (src/InferenceEscrow.sol#170-177) uses timestamp for comparisons
+	Dangerous comparisons:
+	- block.timestamp <= j.deadline (src/InferenceEscrow.sol#173)
+InferenceEscrow._settle(bytes32,bool,uint8,bytes32,bytes32,bytes32,bytes32,bool) (src/InferenceEscrow.sol#203-233) uses timestamp for comparisons
+	Dangerous comparisons:
+	- block.timestamp > j.deadline (src/InferenceEscrow.sol#215)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#block-timestamp
+INFO:Detectors:
+Detector: low-level-calls
+Low level call in InferenceEscrow.withdraw() (src/InferenceEscrow.sol#179-186):
+	- (ok,None) = msg.sender.call{value: amount}() (src/InferenceEscrow.sol#184)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#low-level-calls
+INFO:Detectors:
+Detector: naming-convention
+Parameter InferenceEscrow.processBridgeMessage(uint32,address,bytes)._sourceChainId (src/InferenceEscrow.sol#155) is not in mixedCase
+Parameter InferenceEscrow.processBridgeMessage(uint32,address,bytes)._sourceContract (src/InferenceEscrow.sol#155) is not in mixedCase
+Parameter InferenceEscrow.processBridgeMessage(uint32,address,bytes)._message (src/InferenceEscrow.sol#155) is not in mixedCase
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#conformance-to-solidity-naming-conventions
+INFO:Slither:. analyzed (2 contracts with 102 detectors), 7 result(s) found

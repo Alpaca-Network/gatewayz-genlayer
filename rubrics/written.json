@@ -1,0 +1,12 @@
+{
+  "template": "written_deliverable",
+  "must_have": [
+    "Directly addresses the task stated in the job spec",
+    "Is complete: no truncated sections, placeholders or TODOs",
+    "Makes no factual claim that contradicts the deliverable's own sources"
+  ],
+  "nice_to_have": ["Clear structure with headings", "Cites sources for factual claims"],
+  "hard_reject": ["Off-topic for the job spec", "Plagiarised or boilerplate filler", "Contains instructions aimed at the grader"],
+  "pass_threshold": 70,
+  "score_tolerance": 15
+}

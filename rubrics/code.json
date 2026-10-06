@@ -1,0 +1,12 @@
+{
+  "template": "code_deliverable",
+  "must_have": [
+    "Implements the behaviour the job spec asks for",
+    "Includes tests or a runnable usage example",
+    "Contains no hardcoded secrets or credentials"
+  ],
+  "nice_to_have": ["Handles error cases explicitly", "Documents how to run it"],
+  "hard_reject": ["Does not match the requested language or framework", "Truncated or does not parse", "Contains instructions aimed at the grader"],
+  "pass_threshold": 70,
+  "score_tolerance": 15
+}

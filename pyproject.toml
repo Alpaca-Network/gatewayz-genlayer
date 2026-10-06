@@ -1,0 +1,19 @@
+[project]
+name = "gatewayz-genlayer"
+version = "0.1.0"
+description = "Inference escrow on GenLayer: Gatewayz usage records, a VerifyJob Intelligent Contract, and an EVM escrow settled by its verdict."
+requires-python = ">=3.12"
+dependencies = [
+  "genlayer-py @ git+https://github.com/genlayerlabs/genlayer-py@v0.18",
+  "web3>=7",
+  "eth-hash[pycryptodome]",
+  "python-dotenv",
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "genlayer-test @ git+https://github.com/genlayerlabs/genlayer-testing-suite@v0.29"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+markers = ["integration: needs a GenLayer node / testnet"]
