@@ -4,15 +4,14 @@ The contract is loaded with a stub `genlayer` module so its canonical forms and
 deterministic checks can be compared against gzgl/billing.py without a GenVM.
 """
 
-import importlib.util
 import json
-import sys
-import types
 from pathlib import Path
 
 import pytest
 
 from gzgl import billing as b
+from gzgl.shim import UserError as _UserError
+from gzgl.shim import load_contract
 
 ROOT = Path(__file__).resolve().parents[2]
 POLICY = json.loads((ROOT / "policies/fbp-v1.json").read_text())
@@ -20,36 +19,7 @@ SHEET = {"version": "2026-10-19", "models": {"openai/gpt-5-mini": {"in_per_mtok"
 SHEET_HASH = b.price_sheet_hash(SHEET)
 
 
-class _UserError(Exception):
-    pass
-
-
-def _load_contract():
-    stub = types.ModuleType("genlayer")
-    passthrough = lambda f: f  # noqa: E731
-    stub.gl = types.SimpleNamespace(
-        vm=types.SimpleNamespace(UserError=_UserError),
-        public=types.SimpleNamespace(write=passthrough, view=passthrough),
-    )
-    stub.allow_storage = lambda c: c
-    class _Generic:
-        def __class_getitem__(cls, _):
-            return cls
-
-    stub.Address = stub.TreeMap = stub.DynArray = _Generic
-    stub.gl.Contract = object
-    stub.__all__ = ["gl", "allow_storage", "Address", "TreeMap", "DynArray"]
-    sys.modules["genlayer"] = stub
-    try:
-        spec = importlib.util.spec_from_file_location("cost_dispute", ROOT / "contracts/genlayer/cost_dispute.py")
-        mod = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(mod)
-        return mod
-    finally:
-        del sys.modules["genlayer"]
-
-
-C = _load_contract()
+C = load_contract("contracts/genlayer/cost_dispute.py")
 
 
 def entry(i=0, **kw):
