@@ -1,5 +1,8 @@
 {
   "verify_job": "0xAd47e32565A01F55eB7E08659F699613Af1d7Bcd",
   "verify_job_deploy_tx": "0xe0f282248b2ea266334bdebc441fbbdd5d44b6a169543bc6aafceefdb3ea77ab",
-  "operator": "0x2B227F5f2CD072120a38F3a2780607403340678B"
+  "operator": "0x2B227F5f2CD072120a38F3a2780607403340678B",
+  "cost_dispute": "0xdb8889f31b398A26Db8AE09EB555B8acA04a4A1F",
+  "cost_dispute_deploy_tx": "0x0ce83798636c582fd597bc2214b577881b00b237641239a6a8379026e7343fc9",
+  "cost_dispute_operator": "0x91394383e842840ac42dE773153efA6D597211c7"
 }
