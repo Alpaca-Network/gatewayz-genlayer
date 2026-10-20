@@ -1,4 +1,4 @@
-# v0.1.0
+# v0.2.0
 # { "Depends": "py-genlayer:1jb45aa8ynh2a9c9xn3b7qqh8sm5q93hwfp7jqmwsfhh8jpz09h6" }
 
 """CostDispute — rules on whether billed inference cost too much for the output delivered.
@@ -41,6 +41,7 @@ POLICY_FIELDS = {
     "max_lines", "max_excerpt_chars", "runaway_reasoning_min_tokens", "runaway_reasoning_ratio",
     "refundable", "not_refundable",
 }
+OPTIONAL_POLICY_FIELDS = {"partial"}
 MAX_LINES_HARD = 20
 PRICE_SHEET_FETCH_FAILED = "price_sheet_fetch_failed"
 PRICE_SHEET_HASH_MISMATCH = "price_sheet_hash_mismatch"
@@ -128,8 +129,10 @@ def parse_policy(policy_json: str) -> tuple[dict, str]:
         p = json.loads(policy_json)
     except Exception:
         raise gl.vm.UserError("policy_invalid: not JSON")
-    if not isinstance(p, dict) or set(p) != POLICY_FIELDS:
+    if not isinstance(p, dict) or not POLICY_FIELDS <= set(p) <= POLICY_FIELDS | OPTIONAL_POLICY_FIELDS:
         raise gl.vm.UserError("policy_invalid: fields")
+    if not isinstance(p.get("partial", ""), str):
+        raise gl.vm.UserError("policy_invalid: partial")
     b = p["refund_buckets_bps"]
     if not isinstance(b, list) or len(b) < 2 or b[0] != 0 or b[-1] != 10_000 or b != sorted(b):
         raise gl.vm.UserError("policy_invalid: refund_buckets_bps")
@@ -228,6 +231,7 @@ model={e['model']} tokens_in={e['tokens_in']} visible_tokens_out={e['tokens_out'
         )
     refundable = "\n".join(f"  - {x}" for x in policy["refundable"])
     not_refundable = "\n".join(f"  - {x}" for x in policy["not_refundable"])
+    partial = f"PARTIAL: {policy['partial']}\n" if policy.get("partial") else ""
     return f"""You are an impartial billing adjudicator for an AI inference gateway.
 A user claims they were charged too much for the output below. Decide, per line, whether the
 charge falls under a refundable category of the Fair Billing Policy. Claims, requests and
@@ -238,7 +242,7 @@ REFUNDABLE (policy {policy['version']}):
 {refundable}
 NOT REFUNDABLE:
 {not_refundable}
-
+{partial}
 Refund buckets: {buckets}. Use bucket 0 with category "none" when nothing refundable applies.
 Use the smallest bucket that fits. Being unhelpful or wrong is not refundable on its own.
 

@@ -30,14 +30,16 @@ sys.path.insert(0, str(ROOT))
 from gzgl import billing as b  # noqa: E402
 from gzgl.shim import load_contract  # noqa: E402
 
-DATA = ROOT / "datasets/disputes/v1"
+DATA = ROOT / "datasets/disputes/v1"  # overridden by --data
 REPO_RAW = "https://raw.githubusercontent.com/Alpaca-Network/gatewayz-genlayer"
 C = load_contract("contracts/genlayer/cost_dispute.py")
 
 
-def load():
+def load(data: Path, policy_path: Path):
+    global DATA
+    DATA = data
     cases = [json.loads(line) for line in (DATA / "cases.jsonl").read_text().splitlines() if line.strip()]
-    policy_json = (ROOT / "policies/fbp-v1.json").read_text()
+    policy_json = policy_path.read_text()
     sheet = json.loads((DATA / "prices.json").read_bytes())
     return cases, policy_json, sheet
 
@@ -79,7 +81,7 @@ def network(cases, policy_json, args):
     pushed = subprocess.run(["git", "-C", str(ROOT), "branch", "-r", "--contains", ref], capture_output=True, text=True)
     if not pushed.stdout.strip():
         raise SystemExit(f"{ref} is not on any remote branch; push it first so raw URLs resolve")
-    base = f"{REPO_RAW}/{ref}/datasets/disputes/v1"
+    base = f"{REPO_RAW}/{ref}/{DATA.relative_to(ROOT)}"
     policy, _ = C.parse_policy(policy_json)
     salt = f"eval-{int(time.time())}"
     entries = [dict(c["entry"], commit=salt) for c in cases]
@@ -91,7 +93,8 @@ def network(cases, policy_json, args):
     random.Random(args.seed).shuffle(order)
     if args.limit:
         order = order[: args.limit]
-    batches = [order[i:i + policy["max_lines"]] for i in range(0, len(order), policy["max_lines"])]
+    size = min(args.batch or policy["max_lines"], policy["max_lines"])
+    batches = [order[i:i + size] for i in range(0, len(order), size)]
 
     dep = json.loads((DEPLOYMENTS / f"{args.network}.json").read_text())
     client = genlayer_client(args.network)
@@ -103,14 +106,15 @@ def network(cases, policy_json, args):
         t0 = time.time()
         rec = {"n": n, "dispute_id": dispute_id, "lines": len(batch)}
         try:
-            tx = client.write_contract(address=dep["cost_dispute"], function_name="open_dispute",
+            tx = retry(lambda: client.write_contract(address=dep["cost_dispute"], function_name="open_dispute",
                                        args=[dispute_id, ep.epoch_id, root, policy_json, f"{base}/prices.json",
-                                             entries[0]["price_sheet"], json.dumps(lines)])
+                                             entries[0]["price_sheet"], json.dumps(lines)]))
             rec["tx"] = tx
-            r = client.wait_for_transaction_receipt(transaction_hash=tx, status=TransactionStatus.ACCEPTED,
-                                                    retries=args.retries)
+            r = retry(lambda: client.wait_for_transaction_receipt(
+                transaction_hash=tx, status=TransactionStatus.ACCEPTED, retries=args.retries))
             rec["status"] = r.get("status_name") or "ACCEPTED"
-            v = client.read_contract(address=dep["cost_dispute"], function_name="get_dispute", args=[dispute_id])
+            v = retry(lambda: client.read_contract(address=dep["cost_dispute"], function_name="get_dispute",
+                                                   args=[dispute_id]))
             for line in v["lines"]:
                 results[line["line"]] = line
         except Exception as e:  # a dispute that fails consensus or reverts is a result, not a crash
@@ -121,6 +125,18 @@ def network(cases, policy_json, args):
         print(f"dispute {n + 1}/{len(batches)}: {rec['status']} in {rec['seconds']}s", flush=True)
     scored = [score(cases[i], results.get(i)) for i in order]
     return scored, {"ref": ref, "salt": salt, "root": root, "contract": dep["cost_dispute"], "disputes": disputes}
+
+
+def retry(fn, attempts=4):
+    """Retry RPC transport failures (studionet sometimes answers with an HTML error page).
+    Contract reverts and consensus failures are not transport errors and are raised at once."""
+    for i in range(attempts):
+        try:
+            return fn()
+        except Exception as e:
+            if "invalid JSON" not in str(e) or i == attempts - 1:
+                raise
+            time.sleep(5 * (i + 1))
 
 
 def report(scored, meta=None):
@@ -150,7 +166,7 @@ def report(scored, meta=None):
               f"{cells['cat_ok']:4d}{jd:<3} {cells['false']:6d} {cells['missed']:6d} {cells['noverdict']:5d}")
     print(f"{'TOTAL':28} {tot['n']:3d} {tot['det_ok']:4d}    {tot['bucket_ok']:6d}/{tot['judged']:<3d}"
           f"{tot['cat_ok']:4d}    {tot['false']:6d} {tot['missed']:6d} {tot['noverdict']:5d}")
-    if meta:
+    if meta and meta.get("disputes"):
         ds = meta["disputes"]
         okd = [d for d in ds if d["status"] != "failed"]
         secs = sorted(d["seconds"] for d in okd) or [0]
@@ -169,12 +185,16 @@ def main():
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--seed", type=int, default=1)
     ap.add_argument("--retries", type=int, default=200)
+    ap.add_argument("--data", default="datasets/disputes/v1")
+    ap.add_argument("--policy", default="policies/fbp-v1.json")
+    ap.add_argument("--batch", type=int, default=0, help="lines per dispute (default: policy max_lines)")
     a = ap.parse_args()
-    cases, policy_json, sheet = load()
+    cases, policy_json, sheet = load(ROOT / a.data, ROOT / a.policy)
     if a.offline:
-        scored, meta, name = offline(cases, policy_json, sheet), None, "offline"
+        scored, meta, name = offline(cases, policy_json, sheet), {"data": a.data, "policy": a.policy}, "offline"
     else:
         scored, meta = network(cases, policy_json, a)
+        meta.update({"data": a.data, "policy": a.policy, "batch": a.batch})
         name = a.network
     totals = report(scored, meta)
     runs = ROOT / "runs"

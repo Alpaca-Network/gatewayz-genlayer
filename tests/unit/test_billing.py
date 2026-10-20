@@ -211,3 +211,14 @@ def test_excerpt_keeps_the_tail():
     t = "a" * 5000 + "LOOPLOOP"
     ex = C.excerpt(t, 400)
     assert len(ex) < 450 and ex.endswith("LOOPLOOP")
+
+
+def test_policy_v2_partial_rule_parses_hashes_and_reaches_the_prompt():
+    v2 = json.loads((ROOT / "policies/fbp-v2.json").read_text())
+    p, h = C.parse_policy(json.dumps(v2))
+    assert h == b.policy_hash(v2)
+    items = [{"line": 0, "entry": entry(), "claim": "", "request": "q", "output": "o"}]
+    assert "PARTIAL: When only part of the output is degenerate" in C.build_prompt(p, items)
+    assert "PARTIAL" not in C.build_prompt(POLICY, items)
+    with pytest.raises(_UserError):
+        C.parse_policy(json.dumps({**v2, "partial": 3}))

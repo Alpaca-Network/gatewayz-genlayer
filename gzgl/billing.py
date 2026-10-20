@@ -30,6 +30,7 @@ _POLICY_FIELDS = {
     "max_lines", "max_excerpt_chars", "runaway_reasoning_min_tokens", "runaway_reasoning_ratio",
     "refundable", "not_refundable",
 }
+_OPTIONAL_POLICY_FIELDS = {"partial"}
 NANO = 10**9
 
 
@@ -122,6 +123,7 @@ def content_hash(messages: list[dict], output: str) -> str:
 def canonical_policy(policy: dict) -> bytes:
     extra = set(policy) - _POLICY_FIELDS
     missing = _POLICY_FIELDS - set(policy)
+    extra -= _OPTIONAL_POLICY_FIELDS
     if extra or missing:
         raise ValueError(f"policy_invalid: missing={sorted(missing)} extra={sorted(extra)}")
     return canonical_json(policy)

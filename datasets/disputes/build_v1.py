@@ -244,15 +244,19 @@ def build() -> list[dict]:
 
 
 def main():
-    OUT.mkdir(exist_ok=True)
-    (OUT / "content").mkdir(exist_ok=True)
+    write(OUT, build())
+
+
+def write(out: Path, cases: list[dict]):
+    out.mkdir(exist_ok=True)
+    (out / "content").mkdir(exist_ok=True)
     sheet_bytes = b.canonical_json(SHEET)
-    (OUT / "prices.json").write_bytes(sheet_bytes)
+    (out / "prices.json").write_bytes(sheet_bytes)
     sheet_hash = b.sha256_hex(sheet_bytes)
     rows = []
-    for c in build():
+    for c in cases:
         bundle = b.canonical_content([{"role": "user", "content": c["prompt"]}], c["output"])
-        (OUT / "content" / f"{c['id']}.json").write_bytes(bundle)
+        (out / "content" / f"{c['id']}.json").write_bytes(bundle)
         rows.append({
             "id": c["id"], "task": c["task"], "variant": c["variant"], "claim": c["claim"], "expect": c["expect"],
             "entry": {
@@ -263,13 +267,13 @@ def main():
                 "content_hash": b.sha256_hex(bundle), "commit": "eval-v1",
             },
         })
-    with open(OUT / "cases.jsonl", "w") as f:
+    with open(out / "cases.jsonl", "w") as f:
         for r in rows:
             f.write(json.dumps(r, sort_keys=True) + "\n")
     counts = {}
     for r in rows:
         counts[r["variant"]] = counts.get(r["variant"], 0) + 1
-    print(f"{len(rows)} cases -> {OUT}")
+    print(f"{len(rows)} cases -> {out}")
     for k, v in sorted(counts.items()):
         print(f"  {v:3d}  {k}")
 
