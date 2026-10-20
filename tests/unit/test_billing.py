@@ -222,3 +222,8 @@ def test_policy_v2_partial_rule_parses_hashes_and_reaches_the_prompt():
     assert "PARTIAL" not in C.build_prompt(POLICY, items)
     with pytest.raises(_UserError):
         C.parse_policy(json.dumps({**v2, "partial": 3}))
+
+
+def test_prompt_tells_the_judge_tokens_are_checked_separately():
+    items = [{"line": 0, "entry": entry(), "claim": "", "request": "q", "output": "o"}]
+    assert "never\nrefund because of them" in C.build_prompt(POLICY, items)

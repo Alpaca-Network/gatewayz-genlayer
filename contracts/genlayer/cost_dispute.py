@@ -1,4 +1,4 @@
-# v0.2.0
+# v0.3.0
 # { "Depends": "py-genlayer:1jb45aa8ynh2a9c9xn3b7qqh8sm5q93hwfp7jqmwsfhh8jpz09h6" }
 
 """CostDispute — rules on whether billed inference cost too much for the output delivered.
@@ -243,6 +243,9 @@ REFUNDABLE (policy {policy['version']}):
 NOT REFUNDABLE:
 {not_refundable}
 {partial}
+Token counts and prices are checked separately by code and are shown only as context: never
+refund because of them. Rule only on whether the OUTPUT CONTENT falls under a refundable category.
+
 Refund buckets: {buckets}. Use bucket 0 with category "none" when nothing refundable applies.
 Use the smallest bucket that fits. Being unhelpful or wrong is not refundable on its own.
 
