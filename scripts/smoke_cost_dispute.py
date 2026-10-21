@@ -74,7 +74,7 @@ lines = [{"index": i, "entry": ep.entries[i], "proof": ep.proof(i),
 
 client = genlayer_client(a.network)
 dispute_id = "0x" + os.urandom(32).hex()
-policy_json = (ROOT / "policies/fbp-v1.json").read_text()
+policy_json = (ROOT / "policies/fbp-v4.json").read_text()
 tx = client.write_contract(
     address=dep["cost_dispute"], function_name="open_dispute",
     args=[dispute_id, epoch_id, ep.seal()["root"], policy_json, sheet_url, sheet_hash, json.dumps(lines)],

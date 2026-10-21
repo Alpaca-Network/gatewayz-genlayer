@@ -1,4 +1,4 @@
-# v0.3.0
+# v0.4.0
 # { "Depends": "py-genlayer:1jb45aa8ynh2a9c9xn3b7qqh8sm5q93hwfp7jqmwsfhh8jpz09h6" }
 
 """CostDispute — rules on whether billed inference cost too much for the output delivered.
@@ -43,6 +43,10 @@ POLICY_FIELDS = {
 }
 OPTIONAL_POLICY_FIELDS = {"partial"}
 MAX_LINES_HARD = 20
+MAX_LINES_JSON = 200_000  # bytes of the lines argument
+MAX_CONTENT_BYTES = 256_000  # a revealed bundle larger than this is judged on metadata only
+MAX_SHEET_BYTES = 128_000
+MAX_META_CHARS = 120  # model / finish_reason as shown to the judge
 PRICE_SHEET_FETCH_FAILED = "price_sheet_fetch_failed"
 PRICE_SHEET_HASH_MISMATCH = "price_sheet_hash_mismatch"
 
@@ -211,6 +215,17 @@ def runaway_eligible(policy: dict, entry: dict) -> bool:
 # ------------------------------------------------------------ judgment (LLM)
 
 
+def defang(text, limit: int | None = None) -> str:
+    """Neutralise anything in untrusted text that could close a fence or open a new one,
+    so revealed content, claims and metadata can't pose as instructions to the judge."""
+    t = str(text).replace("<<<", "‹‹‹").replace(">>>", "›››")
+    return t if limit is None else t[:limit]
+
+
+def meta(value) -> str:
+    return defang(value, MAX_META_CHARS).replace("\n", " ").replace("\r", " ")
+
+
 def build_prompt(policy: dict, items: list) -> str:
     buckets = ", ".join(f"{i}={b / 100:g}%" for i, b in enumerate(policy["refund_buckets_bps"]))
     blocks = []
@@ -218,15 +233,15 @@ def build_prompt(policy: dict, items: list) -> str:
         e = it["entry"]
         blocks.append(
             f"""LINE {it['line']}
-model={e['model']} tokens_in={e['tokens_in']} visible_tokens_out={e['tokens_out']} reasoning_tokens={e['tokens_reasoning']} cost_usd={e['cost_usd']} finish_reason={e['finish_reason']}
+model={meta(e['model'])} tokens_in={e['tokens_in']} visible_tokens_out={e['tokens_out']} reasoning_tokens={e['tokens_reasoning']} cost_usd={meta(e['cost_usd'])} finish_reason={meta(e['finish_reason'])}
 <<<CLAIM_START>>>
-{it['claim']}
+{defang(it['claim'])}
 <<<CLAIM_END>>>
 <<<REQUEST_START>>>
-{it['request']}
+{defang(it['request'])}
 <<<REQUEST_END>>>
 <<<OUTPUT_START>>>
-{it['output']}
+{defang(it['output'])}
 <<<OUTPUT_END>>>"""
         )
     refundable = "\n".join(f"  - {x}" for x in policy["refundable"])
@@ -309,16 +324,34 @@ class CostDispute(gl.Contract):
     disputes: TreeMap[str, Dispute]
     dispute_ids: DynArray[str]
     disputed_lines: TreeMap[str, str]  # "<usage_root>:<index>" -> dispute_id
+    policies: TreeMap[str, bool]  # policy_hash -> accepted
 
     def __init__(self):
         self.owner = gl.message.sender_address
         self.submitters[gl.message.sender_address] = True
 
-    @gl.public.write
-    def set_submitter(self, account: str, allowed: bool) -> None:
+    def _only_owner(self):
         if gl.message.sender_address != self.owner:
             raise gl.vm.UserError("only_owner")
+
+    @gl.public.write
+    def set_submitter(self, account: str, allowed: bool) -> None:
+        self._only_owner()
         self.submitters[Address(account)] = allowed
+
+    @gl.public.write
+    def set_policy(self, policy_hash: str, allowed: bool) -> None:
+        """Only owner-approved Fair Billing Policy versions can rule a dispute, so a
+        submitter can't bring a lenient policy of its own."""
+        self._only_owner()
+        if not _is_hex32(policy_hash):
+            raise gl.vm.UserError("invalid_policy_hash")
+        self.policies[policy_hash.lower()] = allowed
+
+    @gl.public.write
+    def set_owner(self, account: str) -> None:
+        self._only_owner()
+        self.owner = Address(account)
 
     @gl.public.write
     def open_dispute(
@@ -346,6 +379,10 @@ class CostDispute(gl.Contract):
         if not price_sheet_uri.startswith("https://") or len(price_sheet_uri) > 512:
             raise gl.vm.UserError("invalid_price_sheet_uri")
         policy, policy_hash = parse_policy(policy_json)
+        if not self.policies.get(policy_hash, False):
+            raise gl.vm.UserError("policy_not_allowed")
+        if len(lines_json) > MAX_LINES_JSON:
+            raise gl.vm.UserError("invalid_lines: too large")
 
         try:
             lines = json.loads(lines_json)
@@ -385,7 +422,7 @@ class CostDispute(gl.Contract):
 
         def leader_fn() -> dict:
             resp = gl.nondet.web.get(price_sheet_uri)
-            if resp.status != 200 or resp.body is None:
+            if resp.status != 200 or resp.body is None or len(resp.body) > MAX_SHEET_BYTES:
                 return {"error": PRICE_SHEET_FETCH_FAILED, "lines": []}
             if sha256_hex(resp.body) != sheet_hash:
                 return {"error": PRICE_SHEET_HASH_MISMATCH, "lines": []}
@@ -398,7 +435,8 @@ class CostDispute(gl.Contract):
                 content = None
                 if it["content_uri"]:
                     r = gl.nondet.web.get(it["content_uri"])
-                    if r.status == 200 and r.body is not None and sha256_hex(r.body) == it["entry"]["content_hash"].lower():
+                    if (r.status == 200 and r.body is not None and len(r.body) <= MAX_CONTENT_BYTES
+                            and sha256_hex(r.body) == it["entry"]["content_hash"].lower()):
                         try:
                             c = json.loads(r.body.decode("utf-8"))
                             if isinstance(c, dict) and isinstance(c.get("output"), str):
@@ -480,6 +518,10 @@ class CostDispute(gl.Contract):
     @gl.public.view
     def get_dispute_ids(self) -> list[str]:
         return list(self.dispute_ids)
+
+    @gl.public.view
+    def is_policy_allowed(self, policy_hash: str) -> bool:
+        return self.policies.get(policy_hash.lower(), False)
 
     @gl.public.view
     def line_dispute(self, usage_root: str, index: int) -> str:
