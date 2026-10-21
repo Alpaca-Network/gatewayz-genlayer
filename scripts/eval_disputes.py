@@ -135,7 +135,7 @@ def retry(fn, attempts=4):
             return fn()
         except Exception as e:
             transient = any(m in str(e) for m in ("invalid JSON", "Connection aborted", "RemoteDisconnected",
-                                                     "Read timed out", "502", "503", "504"))
+                                                     "Read timed out", "ended prematurely", "502", "503", "504"))
             if not transient or i == attempts - 1:
                 raise
             time.sleep(5 * (i + 1))

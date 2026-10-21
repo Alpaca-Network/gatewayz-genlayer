@@ -11,20 +11,20 @@ and after a run on real disputed traffic.
 
 ## Runs
 
-| | v1 | v2 | v3 (regression) |
-|---|---|---|---|
-| Dataset / policy | `datasets/disputes/v1` (196) / `fbp-v1` | `datasets/disputes/v2` (216) / `fbp-v2` | v2 set / `fbp-v3` |
-| Contract | v0.1.0 `0xdb8889f3…4A1F` | v0.2.0 `0xC29DfA26…5C79` | v0.3.0 `0xdda926fA…55b3` |
-| Data ref | `a852b7e` | `29b81f0` | `a458271` |
-| Lines per dispute | 10 | 5 | 5 |
-| Deterministic layer exact | 166/166 | 206/206 | 216/216 |
-| Judged refund bucket in label range | 130/147 (88%) | 185/188 (98.4%) | **194/196 (99.0%)** |
-| Judged category matches | 146/147 | 186/188 | 195/196 |
-| False refunds (label 0, refunded) | 0 | 1 | **0** |
-| Missed refunds (label >0, refunded 0) | 1 | 1 | 1 |
-| Disputes without consensus (MAJORITY_DISAGREE) | 2/20 | 0/44 | 0/44 |
-| Disputes lost to studionet RPC errors | 2/20 | 2/44 | 0/44 (wider retry) |
-| Time to ACCEPTED: p50 / p90 / max | 34 s / 123 s / 288 s | 21 s / 150 s / 1077 s | 34 s / 1021 s / 5445 s |
+| | v1 | v2 | v3 (regression) | v4 (hardened) |
+|---|---|---|---|---|
+| Dataset / policy | `datasets/disputes/v1` (196) / `fbp-v1` | `datasets/disputes/v2` (216) / `fbp-v2` | v2 set / `fbp-v3` | `datasets/disputes/v3` (216) / `fbp-v4` |
+| Contract | v0.1.0 `0xdb8889f3…4A1F` | v0.2.0 `0xC29DfA26…5C79` | v0.3.0 `0xdda926fA…55b3` | v0.4.0 `0x23069f4C…B45f` |
+| Data ref | `a852b7e` | `29b81f0` | `a458271` | `99f4997` |
+| Lines per dispute | 10 | 5 | 5 | 5 |
+| Deterministic layer exact | 166/166 | 206/206 | 216/216 | 211/211 |
+| Judged refund bucket in label range | 130/147 (88%) | 185/188 (98.4%) | 194/196 (99.0%) | **186/191 (97.4%)** |
+| Judged category matches | 146/147 | 186/188 | 195/196 | 189/191 |
+| False refunds (label 0, refunded) | 0 | 1 | 0 | **0** |
+| Missed refunds (label >0, refunded 0) | 1 | 1 | 1 | 1 |
+| Disputes without consensus (MAJORITY_DISAGREE) | 2/20 | 0/44 | 0/44 | 0/44 |
+| Disputes lost to studionet RPC errors | 2/20 | 2/44 | 0/44 (wider retry) | 1/44 |
+| Time to ACCEPTED: p50 / p90 / max | 34 s / 123 s / 288 s | 21 s / 150 s / 1077 s | 34 s / 1021 s / 5445 s | 27 s / 86 s / 275 s |
 
 Fees: studionet is free, so the cost per dispute is **not measured yet**. That needs a Bradbury run.
 
@@ -69,6 +69,23 @@ judges are least sure, which matches the intuition.
 **Latency is the open problem.** The median was fine at 34 s, but p90 was 17 min and the worst
 dispute took 91 min to ACCEPTED on studionet. If Bradbury looks similar, the challenge window has
 to absorb hours, not minutes, before payouts. Measure there before fixing window lengths.
+
+## v4 (hardened contract, useful-answer partial rule)
+
+Decision 2026-10-21: partial refunds are judged against the useful answer, not by byte
+share (`fbp-v4`). Dataset v3 relabels the 20 `loop_tail_short` cases (complete answer + a
+few repeated fragments) from 25–100% to 0–25%. The contract is v0.4.0 (approved-policy
+allowlist, fence defanging, size limits).
+
+The rule moved most short-loop rulings but not all of them. 17 of 20 now get 0–25%;
+`hash`, `capital` and `author` still got 50%. On a one-line answer the validators still
+weigh how much junk there is relative to the answer. `palindrome-looptail` (long loop) got
+25% where 75–100% was expected. `capital-spanish` ("La capital de Australia es Canberra.")
+got no refund; the label is doubtful, since a one-line name reads in any language.
+
+There were still no false refunds and every dispute reached consensus. If 50% on a short
+answer with a few repeats is unacceptable, the next step is a worked example in the policy,
+not more wording.
 
 ## Next
 
