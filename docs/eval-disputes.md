@@ -11,20 +11,20 @@ and after a run on real disputed traffic.
 
 ## Runs
 
-| | v1 | v2 |
-|---|---|---|
-| Dataset / policy | `datasets/disputes/v1` (196) / `fbp-v1` | `datasets/disputes/v2` (216) / `fbp-v2` |
-| Contract | v0.1.0 `0xdb8889f3…4A1F` | v0.2.0 `0xC29DfA26…5C79` |
-| Data ref | `a852b7e` | `29b81f0` |
-| Lines per dispute | 10 | 5 |
-| Deterministic layer exact | 166/166 | 206/206 |
-| Judged refund bucket in label range | 130/147 (88%) | **185/188 (98.4%)** |
-| Judged category matches | 146/147 | 186/188 |
-| False refunds (label 0, refunded) | 0 | 1 |
-| Missed refunds (label >0, refunded 0) | 1 | 1 |
-| Disputes without consensus (MAJORITY_DISAGREE) | 2/20 | **0/44** |
-| Disputes lost to studionet RPC errors | 2/20 | 2/44 |
-| Time to ACCEPTED: p50 / p90 / max | 34 s / 123 s / 288 s | 21 s / 150 s / 1077 s |
+| | v1 | v2 | v3 (regression) |
+|---|---|---|---|
+| Dataset / policy | `datasets/disputes/v1` (196) / `fbp-v1` | `datasets/disputes/v2` (216) / `fbp-v2` | v2 set / `fbp-v3` |
+| Contract | v0.1.0 `0xdb8889f3…4A1F` | v0.2.0 `0xC29DfA26…5C79` | v0.3.0 `0xdda926fA…55b3` |
+| Data ref | `a852b7e` | `29b81f0` | `a458271` |
+| Lines per dispute | 10 | 5 | 5 |
+| Deterministic layer exact | 166/166 | 206/206 | 216/216 |
+| Judged refund bucket in label range | 130/147 (88%) | 185/188 (98.4%) | **194/196 (99.0%)** |
+| Judged category matches | 146/147 | 186/188 | 195/196 |
+| False refunds (label 0, refunded) | 0 | 1 | **0** |
+| Missed refunds (label >0, refunded 0) | 1 | 1 | 1 |
+| Disputes without consensus (MAJORITY_DISAGREE) | 2/20 | 0/44 | 0/44 |
+| Disputes lost to studionet RPC errors | 2/20 | 2/44 | 0/44 (wider retry) |
+| Time to ACCEPTED: p50 / p90 / max | 34 s / 123 s / 288 s | 21 s / 150 s / 1077 s | 34 s / 1021 s / 5445 s |
 
 Fees: studionet is free, so the cost per dispute is **not measured yet**. That needs a Bradbury run.
 
@@ -54,9 +54,25 @@ Fees: studionet is free, so the cost per dispute is **not measured yet**. That n
 | `multiply-truncated` | off_task, 100% | none 0–1 | "17 x 23 =" cut by the caller's own `max_tokens` (`finish_reason=length`). The policy never says this is not refundable. Fix: add it to `not_refundable`. |
 | `zip-looptail-short` | none | degenerate 2–4 | Label error: a regex followed by the same regex three times is not really degenerate. |
 
+## v3 (regression on the v2 set)
+
+v3 fixed the two judgment misses v2 exposed: the prompt now says token counts and prices are
+code-checked and never a reason to refund, and `fbp-v3` lists the caller's own `max_tokens`
+cut-off as not refundable. Both cases now pass. This is a **regression check, not a fresh
+test**, because the fixes were made after seeing those exact cases.
+
+The two remaining misses are both `loop_tail_short`, the genuinely partial cases:
+`zip-looptail-short` (judged 25%, labelled 50–100%; the label is doubtful, see v2) and
+`fahrenheit-looptail-short` (judged none, labelled 25–50%). Partial refunds are where the
+judges are least sure, which matches the intuition.
+
+**Latency is the open problem.** The median was fine at 34 s, but p90 was 17 min and the worst
+dispute took 91 min to ACCEPTED on studionet. If Bradbury looks similar, the challenge window has
+to absorb hours, not minutes, before payouts. Measure there before fixing window lengths.
+
 ## Next
 
-1. Prompt fix (judge content only) + `max_tokens` line in the policy → fbp-v3, re-run.
+1. ~~Prompt fix + `max_tokens` line → fbp-v3~~ done (v3 above).
 2. Human review of the labels (sample at least the borderline variants: `loop_tail_short`,
    `max_tokens_truncation`, `wrong_but_attempted`, `reasoning_below_threshold`).
 3. Bradbury run to measure fees per dispute, and finality and appeal times.
