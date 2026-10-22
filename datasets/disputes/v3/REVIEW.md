@@ -1,21 +1,21 @@
 # Label review: v3, borderline cases
 
-Ruling column: run `eval-studionet-1792606273.json` (policy `policies/fbp-v4.json`, contract `0x23069f4C16F21E48d0E74e6E358485f1FE66B45f`). Mark **Your call** as ✅ (label right), ❌ (label wrong, say what it should be) or ? (unsure). Disagreements between label and ruling are marked ⚠️.
+Ruling column: run `eval-studionet-1792681664.json` (policy `policies/fbp-v5.json`, contract `0x23069f4C16F21E48d0E74e6E358485f1FE66B45f`). Mark **Your call** as ✅ (label right), ❌ (label wrong, say what it should be) or ? (unsure). Disagreements between label and ruling are marked ⚠️.
 
 ## loop_tail_short (20)
 
 | Case | Request | Output | Tokens out / reasoning | Label | Ruling | Your call |
 |---|---|---|---|---|---|---|
-| `author-looptail-short` | Who wrote 'Pride and Prejudice'? | Jane Austen wrote 'Pride and Prejudice', published in 1813. ⏎ Jane Austen wrote 'Pride. Jane Austen wrote 'Pride. Jane Austen wrote 'Pride. | 35 / 0 | none 0%–25% | degenerate 50% ⚠️ | |
+| `author-looptail-short` | Who wrote 'Pride and Prejudice'? | Jane Austen wrote 'Pride and Prejudice', published in 1813. ⏎ Jane Austen wrote 'Pride. Jane Austen wrote 'Pride. Jane Austen wrote 'Pride. | 35 / 0 | none 0%–25% | degenerate 25% | |
 | `bash-looptail-short` | Write a bash one-liner that counts the lines in all .py files in the current directory tree. | find . -name '*.py' -print0 \| xargs -0 cat \| wc -l ⏎ find . -name '*.py'. find . -name '*.py'. find . -name '*.py'. | 29 / 0 | none 0%–25% | degenerate 25% | |
 | `berlin-looptail-short` | What year did the Berlin Wall fall? | The Berlin Wall fell in 1989, on 9 November. ⏎ The Berlin Wall fell. The Berlin Wall fell. The Berlin Wall fell. | 28 / 0 | none 0%–25% | degenerate 25% | |
 | `cafe-looptail-short` | Suggest a name for a coffee shop run by two retired astronomers, with a one-line rationale. | Event Horizon Espresso: once you step in, you won't want to leave. ⏎ Event Horizon Espresso: once. Event Horizon Espresso: once. Event Horizon Espresso: once. | 39 / 0 | none 0%–25% | degenerate 25% | |
-| `capital-looptail-short` | What is the capital of Australia? One sentence. | The capital of Australia is Canberra. ⏎ The capital of Australia. The capital of Australia. The capital of Australia. | 29 / 0 | none 0%–25% | degenerate 50% ⚠️ | |
+| `capital-looptail-short` | What is the capital of Australia? One sentence. | The capital of Australia is Canberra. ⏎ The capital of Australia. The capital of Australia. The capital of Australia. | 29 / 0 | none 0%–25% | degenerate 25% | |
 | `email-looptail-short` | Draft a polite email declining a meeting on Thursday and proposing Friday morning instead. | Hi Sam, ⏎  ⏎ Thank you for the invite. Unfortunately I can't make Thursday. Would Friday morning work for you instead? I'm free from 9 to 12. ⏎  ⏎ Best regards, ⏎ Alex ⏎ Hi Sam, Thank you. Hi Sam, Thank you. Hi Sam, Tha… | 54 / 0 | none 0%–25% | degenerate 25% | |
 | `equation-looptail-short` | Solve for x: 3x + 7 = 22. Show the steps. | 3x + 7 = 22 ⏎ 3x = 15 ⏎ x = 5 ⏎ 3x + 7 =. 3x + 7 =. 3x + 7 =. | 14 / 0 | none 0%–25% | degenerate 25% | |
 | `fahrenheit-looptail-short` | Convert 72 degrees Fahrenheit to Celsius. Show the formula. | C = (F - 32) x 5/9 = (72 - 32) x 5/9 = 22.2 degrees Celsius. ⏎ C = (F -. C = (F -. C = (F -. | 23 / 0 | none 0%–25% | degenerate 25% | |
 | `haiku-looptail-short` | Write a haiku about rain. | Soft rain on the roof ⏎ the gutters hum their one note ⏎ streets turn into sky ⏎ Soft rain on the. Soft rain on the. Soft rain on the. | 32 / 0 | none 0%–25% | degenerate 25% | |
-| `hash-looptail-short` | Explain what a hash function is to a 12-year-old in 3 sentences. | A hash function is like a machine that turns any message into a short code. The same message always gives the same code, but even a tiny change gives a totally different one. Computers use these codes to check that file… | 76 / 0 | none 0%–25% | degenerate 50% ⚠️ | |
+| `hash-looptail-short` | Explain what a hash function is to a 12-year-old in 3 sentences. | A hash function is like a machine that turns any message into a short code. The same message always gives the same code, but even a tiny change gives a totally different one. Computers use these codes to check that file… | 76 / 0 | none 0%–25% | degenerate 25% | |
 | `headphones-looptail-short` | Write a two-line product description for noise-cancelling headphones. | Shut out the commute and turn up the detail. ⏎ All-day comfort, 30-hour battery, silence on demand. ⏎ Shut out the commute. Shut out the commute. Shut out the commute. | 41 / 0 | none 0%–25% | degenerate 25% | |
 | `json-looptail-short` | Give a JSON object with keys name, age and city for a fictional person. | {"name": "Maya Lind", "age": 34, "city": "Lisbon"} ⏎ {"name": "Maya Lind", "age":. {"name": "Maya Lind", "age":. {"name": "Maya Lind", "age":. | 35 / 0 | none 0%–25% | degenerate 25% | |
 | `multiply-looptail-short` | What is 17 x 23? | 17 x 23 = 391. ⏎ 17 x 23 =. 17 x 23 =. 17 x 23 =. | 12 / 0 | none 0%–25% | degenerate 25% | |
@@ -40,7 +40,7 @@ Ruling column: run `eval-studionet-1792606273.json` (policy `policies/fbp-v4.jso
 | `palindrome-truncated` | Write a Python function that returns True if a string is a palindrome, ignoring case. | def is_palindrome(s: str) -> bool: ⏎     s = s.lower | 13 / 0 | none 0%–25% | none 0% | |
 | `sql-truncated` | Write a SQL query that returns the 5 customers with the highest total order amount, from tables customers(id, name) and… | SELECT c.name, SUM(o.amount) AS total ⏎ FROM customers c ⏎ JOIN orders o ON o.customer_id = c.id ⏎ GR | 24 / 0 | none 0%–25% | none 0% | |
 | `translate-truncated` | Translate to French: 'The meeting has been moved to next Tuesday.' | La reunion a ete deplacee a  | 7 / 0 | none 0%–25% | none 0% | |
-| `zip-truncated` | Give me a regex that matches US ZIP codes (5 digits, with an optional -4 digit extension). | ^\d{5}(-\d | 3 / 0 | none 0%–25% | – | |
+| `zip-truncated` | Give me a regex that matches US ZIP codes (5 digits, with an optional -4 digit extension). | ^\d{5}(-\d | 3 / 0 | none 0%–25% | none 0% | |
 
 ## wrong_but_attempted (20)
 
@@ -64,7 +64,7 @@ Ruling column: run `eval-studionet-1792606273.json` (policy `policies/fbp-v4.jso
 | `summary-wrong` | Summarise in two sentences: Photosynthesis is the process by which green plants use sunlight, water and carbon dioxide … | Plants use sunlight and oxygen to make glucose through photosynthesis. It happens in the roots and releases carbon dioxide. | 31 / 0 | none 0%–0% | none 0% | |
 | `tcpudp-wrong` | Explain the difference between TCP and UDP in under 80 words. | UDP sets up a connection and guarantees delivery and order. TCP sends packets without guarantees, which makes it faster, so it suits live video and games. | 39 / 0 | none 0%–0% | none 0% | |
 | `testing-wrong` | List three benefits of unit testing. | 1. Makes the code run faster. ⏎ 2. Reduces the size of the binary. ⏎ 3. Catches some bugs. | 22 / 0 | none 0%–0% | none 0% | |
-| `translate-wrong` | Translate to French: 'The meeting has been moved to next Tuesday.' | La reunion a ete annulee mardi prochain. | 10 / 0 | none 0%–0% | – | |
+| `translate-wrong` | Translate to French: 'The meeting has been moved to next Tuesday.' | La reunion a ete annulee mardi prochain. | 10 / 0 | none 0%–0% | none 0% | |
 | `zip-wrong` | Give me a regex that matches US ZIP codes (5 digits, with an optional -4 digit extension). | ^\d{5}$  (this matches all US ZIP codes) | 10 / 0 | none 0%–0% | none 0% | |
 
 ## reasoning_below_threshold (4)
@@ -82,9 +82,9 @@ Ruling column: run `eval-studionet-1792606273.json` (policy `policies/fbp-v4.jso
 |---|---|---|---|---|---|---|
 | `author-spanish` | Who wrote 'Pride and Prejudice'? | Jane Austen escribio 'Orgullo y prejuicio', publicada en 1813. | 16 / 0 | degenerate 50%–100% | degenerate 100% | |
 | `berlin-spanish` | What year did the Berlin Wall fall? | El Muro de Berlin cayo en 1989, el 9 de noviembre. | 13 / 0 | degenerate 50%–100% | degenerate 100% | |
-| `capital-spanish` | What is the capital of Australia? One sentence. | La capital de Australia es Canberra. | 9 / 0 | degenerate 50%–100% | none 0% ⚠️ | |
+| `capital-spanish` | What is the capital of Australia? One sentence. | La capital de Australia es Canberra. | 9 / 0 | degenerate 50%–100% | degenerate 100% | |
 | `email-spanish` | Draft a polite email declining a meeting on Thursday and proposing Friday morning instead. | Hola Sam, ⏎  ⏎ Gracias por la invitacion. Lamentablemente no puedo el jueves. Te iria bien el viernes por la manana? Estoy libre de 9 a 12. ⏎  ⏎ Saludos, ⏎ Alex | 38 / 0 | degenerate 50%–100% | degenerate 100% | |
-| `equation-spanish` | Solve for x: 3x + 7 = 22. Show the steps. | 3x + 7 = 22 ⏎ 3x = 15 ⏎ x = 5 (la solucion es cinco) | 12 / 0 | none 0%–25% | none 0% | |
+| `equation-spanish` | Solve for x: 3x + 7 = 22. Show the steps. | 3x + 7 = 22 ⏎ 3x = 15 ⏎ x = 5 (la solucion es cinco) | 12 / 0 | none 0%–25% | degenerate 25% | |
 | `fahrenheit-spanish` | Convert 72 degrees Fahrenheit to Celsius. Show the formula. | C = (F - 32) x 5/9 = (72 - 32) x 5/9 = 22,2 grados Celsius. | 15 / 0 | none 0%–25% | none 0% | |
 | `hash-spanish` | Explain what a hash function is to a 12-year-old in 3 sentences. | Una funcion hash es como una maquina que convierte cualquier mensaje en un codigo corto. El mismo mensaje siempre da el mismo codigo, pero un pequeno cambio da uno totalmente distinto. Los ordenadores usan estos codigos… | 67 / 0 | degenerate 50%–100% | degenerate 100% | |
 | `summary-spanish` | Summarise in two sentences: Photosynthesis is the process by which green plants use sunlight, water and carbon dioxide … | Las plantas usan luz solar, agua y dioxido de carbono para producir glucosa mediante la fotosintesis. Ocurre sobre todo en los cloroplastos de las hojas y libera oxigeno. | 43 / 0 | degenerate 50%–100% | degenerate 100% | |

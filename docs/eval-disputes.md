@@ -11,20 +11,20 @@ and after a run on real disputed traffic.
 
 ## Runs
 
-| | v1 | v2 | v3 (regression) | v4 (hardened) |
-|---|---|---|---|---|
-| Dataset / policy | `datasets/disputes/v1` (196) / `fbp-v1` | `datasets/disputes/v2` (216) / `fbp-v2` | v2 set / `fbp-v3` | `datasets/disputes/v3` (216) / `fbp-v4` |
-| Contract | v0.1.0 `0xdb8889f3…4A1F` | v0.2.0 `0xC29DfA26…5C79` | v0.3.0 `0xdda926fA…55b3` | v0.4.0 `0x23069f4C…B45f` |
-| Data ref | `a852b7e` | `29b81f0` | `a458271` | `99f4997` |
-| Lines per dispute | 10 | 5 | 5 | 5 |
-| Deterministic layer exact | 166/166 | 206/206 | 216/216 | 211/211 |
-| Judged refund bucket in label range | 130/147 (88%) | 185/188 (98.4%) | 194/196 (99.0%) | **186/191 (97.4%)** |
-| Judged category matches | 146/147 | 186/188 | 195/196 | 189/191 |
-| False refunds (label 0, refunded) | 0 | 1 | 0 | **0** |
-| Missed refunds (label >0, refunded 0) | 1 | 1 | 1 | 1 |
-| Disputes without consensus (MAJORITY_DISAGREE) | 2/20 | 0/44 | 0/44 | 0/44 |
-| Disputes lost to studionet RPC errors | 2/20 | 2/44 | 0/44 (wider retry) | 1/44 |
-| Time to ACCEPTED: p50 / p90 / max | 34 s / 123 s / 288 s | 21 s / 150 s / 1077 s | 34 s / 1021 s / 5445 s | 27 s / 86 s / 275 s |
+| | v1 | v2 | v3 (regression) | v4 (hardened) | v5 (worked examples) |
+|---|---|---|---|---|---|
+| Dataset / policy | `datasets/disputes/v1` (196) / `fbp-v1` | `datasets/disputes/v2` (216) / `fbp-v2` | v2 set / `fbp-v3` | `datasets/disputes/v3` (216) / `fbp-v4` | v3 set / `fbp-v5` |
+| Contract | v0.1.0 `0xdb8889f3…4A1F` | v0.2.0 `0xC29DfA26…5C79` | v0.3.0 `0xdda926fA…55b3` | v0.4.0 `0x23069f4C…B45f` | same |
+| Data ref | `a852b7e` | `29b81f0` | `a458271` | `99f4997` | `60049d4` |
+| Lines per dispute | 10 | 5 | 5 | 5 | 5 |
+| Deterministic layer exact | 166/166 | 206/206 | 216/216 | 211/211 | 216/216 |
+| Judged refund bucket in label range | 130/147 (88%) | 185/188 (98.4%) | 194/196 (99.0%) | **186/191 (97.4%)** | **196/196 (100%)** |
+| Judged category matches | 146/147 | 186/188 | 195/196 | 189/191 | 196/196 |
+| False refunds (label 0, refunded) | 0 | 1 | 0 | **0** | **0** |
+| Missed refunds (label >0, refunded 0) | 1 | 1 | 1 | 1 | 0 |
+| Disputes without consensus (MAJORITY_DISAGREE) | 2/20 | 0/44 | 0/44 | 0/44 | 0/44 |
+| Disputes lost to studionet RPC errors | 2/20 | 2/44 | 0/44 (wider retry) | 1/44 | 0/44 |
+| Time to ACCEPTED: p50 / p90 / max | 34 s / 123 s / 288 s | 21 s / 150 s / 1077 s | 34 s / 1021 s / 5445 s | 27 s / 86 s / 275 s | 26 s / 72 s / 129 s |
 
 Fees: studionet is free, so the cost per dispute is **not measured yet**. That needs a Bradbury run.
 
@@ -86,6 +86,25 @@ got no refund; the label is doubtful, since a one-line name reads in any languag
 There were still no false refunds and every dispute reached consensus. If 50% on a short
 answer with a few repeats is unacceptable, the next step is a worked example in the policy,
 not more wording.
+
+## v5 (worked examples in the partial rule)
+
+Decision 2026-10-22 (Joaquim): add a worked example. `fbp-v5` keeps the v4 wording and adds
+three examples on a question that is not in the dataset (Mount Everest): answer + a few
+repeated fragments → 0–25%, never 50%, however short the answer; the same answer + ~150
+repeats → 75–100%; a loop before the answer is finished → 100%. Same contract, dataset and
+labels as v4.
+
+Every judged line landed in its label range (196/196), with no false refunds, no missed
+refunds and no consensus failures. 19 of 20 short-loop cases got 25%, and one got 0%.
+
+Read it with care:
+- **Not a clean test.** The examples were written after v4 showed which cases failed. The
+  question differs, but the shape is the same, so this is a fit to the known misses. Only
+  new cases or real traffic will show whether it generalises.
+- **Run-to-run variance on doubtful cases.** `capital-spanish` got 0% in v4 and 100% in v5,
+  although the only policy change was the loop examples, which say nothing about language. The label (50–100%) is doubtful, so v5 "passing" it
+  proves little. One run per policy is not enough to separate a policy effect from noise.
 
 ## Next
 
