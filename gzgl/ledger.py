@@ -12,7 +12,7 @@ Accounts
     user:<id>:bond        dispute bonds
     provider:<id>:payable owed to an open provider (paid in arrears, after the window)
     gatewayz:upstream     recoups what Gatewayz prepaid a lab for an underwritten line
-    gatewayz:reserve      clawback reserve, funded by the escrow fee; may go negative
+    gatewayz:reserve      clawback reserve, funded by the 10% escrow fee; may go negative
     gatewayz:fees         forfeited bonds (they pay for adjudication)
     external:card         money in from card top-ups
 
@@ -20,8 +20,7 @@ Who pays a clawback
     provider  open providers that accepted terms: their line is still unpaid, so the
               refund simply never reaches them.
     reserve   lab models Gatewayz chose to underwrite: the lab was paid upfront, so the
-              refund is made whole from the reserve. Only on the terms' allowlist, and
-              for a much higher fee.
+              refund is made whole from the reserve. Only on the terms' allowlist.
     Anything else is billed without escrow and cannot be disputed.
 
 A verdict is applied only as the relayer read it from FINALIZED GenLayer state; the
@@ -48,10 +47,10 @@ class EscrowTerms:
     adjudication_s: int = 2 * DAY                # verdict expected within this after a dispute opens
     bond_min_nano: int = 1 * NANO                # max($1, 10% of contested)
     bond_bps: int = 1_000
-    fee_bps: dict = field(default_factory=lambda: {"provider": 100, "reserve": 1_000})
+    fee_bps: dict = field(default_factory=lambda: {"provider": 1_000, "reserve": 1_000})  # 10% (decided 2026-10-22)
     open_providers: frozenset = frozenset()      # accept clawbacks, paid in arrears
     underwritten_models: frozenset = frozenset() # lab models Gatewayz underwrites
-    refund_cap_nano: int = 50 * NANO             # per user per 30-day period
+    refund_cap_bps: int = 2_500                  # refunds <= 25% of the user's escrowed spend per 30-day period
     allowed_policies: frozenset = frozenset()
 
 
@@ -203,7 +202,7 @@ class Ledger:
             refunds[i] = billed * bps // 10_000
 
         period = (d.user, ep.closed_at // _PERIOD)
-        room = max(0, self.terms.refund_cap_nano - self._refunded.get(period, 0))
+        room = max(0, self.escrowed_spend(*period) * self.terms.refund_cap_bps // 10_000 - self._refunded.get(period, 0))
         total = 0
         for i in d.indexes:
             line, refund = ep.lines[i], min(refunds[i], room - total)
@@ -236,6 +235,12 @@ class Ledger:
                 line.state, released = "paid", released + line.cost
         ep.finalized = True
         return released
+
+    def escrowed_spend(self, user: str, period: int) -> int:
+        """Escrowed billing in the user's epochs that closed in this 30-day period (sets the refund cap)."""
+        return sum(ln.cost for e in self.epochs.values()
+                   if e.user == user and e.closed_at is not None and e.closed_at // _PERIOD == period
+                   for ln in e.lines if ln.clawback)
 
     def overdue_disputes(self, now: int) -> list[str]:
         """Open disputes past the adjudication deadline. Held money stays put; a human decides."""

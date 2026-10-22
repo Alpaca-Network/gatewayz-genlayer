@@ -11,7 +11,7 @@ POLICY = "0x" + "ab" * 32
 EPOCH = "0x" + "e1" * 32
 T0 = 1_800_000_000
 TERMS = EscrowTerms(open_providers=frozenset({"gatewayz-gpu"}), underwritten_models=frozenset({"openai/gpt-5-mini"}),
-                    allowed_policies=frozenset({POLICY}), refund_cap_nano=50 * NANO)
+                    allowed_policies=frozenset({POLICY}), refund_cap_bps=10_000)  # cap tested on its own
 
 
 def entry(i, cost="0.40", provider="gatewayz-gpu", model="meta/llama-4"):
@@ -46,8 +46,7 @@ def test_undisputed_epoch_pays_providers_after_the_window():
     bal = led.balances()
     assert bal["provider:gatewayz-gpu:payable"] == b.to_nano("0.40")
     assert bal["gatewayz:upstream"] == b.to_nano("0.40")
-    # escrow fee: 1% for provider-backed, 10% for reserve-backed lines
-    assert bal["gatewayz:reserve"] == b.to_nano("0.004") + b.to_nano("0.04")
+    assert bal["gatewayz:reserve"] == 2 * b.to_nano("0.04")  # 10% escrow fee on both lines
     assert "user:u:pending" not in bal
 
 
@@ -59,7 +58,7 @@ def test_provider_line_refund_never_reaches_the_provider():
     assert led.apply_verdict(verdict(root, [(1, "0.4", 7_500)])) == b.to_nano("0.30")
     bal = led.balances()
     assert bal["provider:gatewayz-gpu:payable"] == b.to_nano("0.50")
-    assert bal["user:u:available"] == b.to_nano("100") - b.to_nano("0.80") - b.to_nano("0.008") + b.to_nano("0.30")
+    assert bal["user:u:available"] == b.to_nano("100") - b.to_nano("0.80") - b.to_nano("0.08") + b.to_nano("0.30")
     assert "user:u:held" not in bal and "user:u:bond" not in bal
 
 
@@ -99,7 +98,7 @@ def test_challenge_window(when, ok):
 
 
 def test_lines_are_disputed_once_and_need_credit_for_the_bond():
-    led, _ = build([entry(0), entry(1)], deposit="1.9")  # 0.808 billed, $1 bond leaves 0.092
+    led, _ = build([entry(0), entry(1)], deposit="1.9")  # 0.88 billed incl. fees, $1 bond leaves 0.02
     led.open_dispute("0xd1", EPOCH, [0], T0)
     with pytest.raises(LedgerError, match="line_already_disputed"):
         led.open_dispute("0xd2", EPOCH, [0], T0)
@@ -124,13 +123,13 @@ def test_verdict_must_match_the_dispute(mutate, err):
     assert led.balances()["user:u:held"] == b.to_nano("0.80")  # nothing moved
 
 
-def test_refund_cap_limits_payout_but_a_winner_keeps_the_bond():
-    terms = EscrowTerms(open_providers=TERMS.open_providers, allowed_policies=TERMS.allowed_policies, refund_cap_nano=b.to_nano("0.5"))
-    led, root = build([entry(0), entry(1)], terms=terms)
+def test_refunds_are_capped_at_25_percent_of_escrowed_spend_but_a_winner_keeps_the_bond():
+    terms = EscrowTerms(open_providers=TERMS.open_providers, allowed_policies=TERMS.allowed_policies)
+    led, root = build([entry(i) for i in range(4)], terms=terms)  # 1.60 escrowed → cap 0.40
     led.open_dispute("0xd1", EPOCH, [0, 1], T0)
-    assert led.apply_verdict(verdict(root, [(0, "0.4", 10_000), (1, "0.4", 10_000)])) == b.to_nano("0.5")
+    assert led.apply_verdict(verdict(root, [(0, "0.4", 10_000), (1, "0.4", 10_000)])) == b.to_nano("0.40")
     bal = led.balances()
-    assert bal["provider:gatewayz-gpu:payable"] == b.to_nano("0.30")
+    assert bal["provider:gatewayz-gpu:payable"] == b.to_nano("0.40")
     assert "gatewayz:fees" not in bal
 
 
