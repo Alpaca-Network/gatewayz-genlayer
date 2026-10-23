@@ -5,7 +5,7 @@
   {
    "id": "capital-fair",
    "title": "Capital of Australia",
-   "provider": "gatewayz-gpu",
+   "provider": "open-provider",
    "model": "meta-llama/llama-3.3-70b-instruct",
    "expect": "A correct one-line answer. Not refundable.",
    "variant": "fair",
@@ -23,7 +23,7 @@
   {
    "id": "sql-fair",
    "title": "Top 5 customers in SQL",
-   "provider": "gatewayz-gpu",
+   "provider": "open-provider",
    "model": "meta-llama/llama-3.3-70b-instruct",
    "expect": "A working query. Not refundable.",
    "variant": "fair",
@@ -41,7 +41,7 @@
   {
    "id": "tcpudp-fair",
    "title": "TCP vs UDP in 80 words",
-   "provider": "gatewayz-gpu",
+   "provider": "open-provider",
    "model": "meta-llama/llama-3.3-70b-instruct",
    "expect": "A good explanation. Not refundable.",
    "variant": "fair",
@@ -59,7 +59,7 @@
   {
    "id": "capital-wrong",
    "title": "Capital of Australia (again)",
-   "provider": "gatewayz-gpu",
+   "provider": "open-provider",
    "model": "meta-llama/llama-3.3-70b-instruct",
    "expect": "Wrong answer (Sydney), but it tried. Wrong answers are not refundable.",
    "variant": "wrong_but_attempted",
@@ -77,7 +77,7 @@
   {
    "id": "email-loop",
    "title": "Decline-a-meeting email",
-   "provider": "gatewayz-gpu",
+   "provider": "open-provider",
    "model": "meta-llama/llama-3.3-70b-instruct",
    "expect": "The model looped on one phrase. Expect 75-100% back.",
    "variant": "loop",
@@ -95,7 +95,7 @@
   {
    "id": "hash-garbage",
    "title": "Explain hash functions to a 12-year-old",
-   "provider": "gatewayz-gpu",
+   "provider": "open-provider",
    "model": "meta-llama/llama-3.3-70b-instruct",
    "expect": "Garbage characters. Expect 75-100% back.",
    "variant": "garbage",
@@ -113,7 +113,7 @@
   {
    "id": "haiku-offtask",
    "title": "Haiku about rain",
-   "provider": "gatewayz-gpu",
+   "provider": "open-provider",
    "model": "meta-llama/llama-3.3-70b-instruct",
    "expect": "Answered a different question. Expect 75-100% back.",
    "variant": "off_task",
@@ -131,7 +131,7 @@
   {
    "id": "summary-spanish",
    "title": "Two-sentence summary",
-   "provider": "gatewayz-gpu",
+   "provider": "open-provider",
    "model": "meta-llama/llama-3.3-70b-instruct",
    "expect": "Answered in Spanish to an English request. Expect 50-100% back.",
    "variant": "wrong_language",
@@ -149,7 +149,7 @@
   {
    "id": "email-looptail-short",
    "title": "Decline-a-meeting email (retry)",
-   "provider": "gatewayz-gpu",
+   "provider": "open-provider",
    "model": "meta-llama/llama-3.3-70b-instruct",
    "expect": "A good email plus a few repeated fragments. Expect 0-25%.",
    "variant": "loop_tail_short",
@@ -167,7 +167,7 @@
   {
    "id": "fahrenheit-empty",
    "title": "Fahrenheit to Celsius",
-   "provider": "gatewayz-gpu",
+   "provider": "open-provider",
    "model": "meta-llama/llama-3.3-70b-instruct",
    "expect": "Billed for an empty reply. Code refunds 100% without asking a model.",
    "variant": "empty_output",
@@ -185,7 +185,7 @@
   {
    "id": "sql-metering",
    "title": "Top 5 customers in SQL (retry)",
-   "provider": "gatewayz-gpu",
+   "provider": "open-provider",
    "model": "meta-llama/llama-3.3-70b-instruct",
    "expect": "Billed 2,000 tokens for a short reply. Code refunds the overbilled share.",
    "variant": "metering_overbilled",
