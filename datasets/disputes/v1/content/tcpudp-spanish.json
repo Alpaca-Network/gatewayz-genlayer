@@ -1,0 +1,1 @@
+{"messages":[{"content":"Explain the difference between TCP and UDP in under 80 words.","role":"user"}],"output":"TCP establece una conexion y garantiza la entrega, el orden y la comprobacion de errores. UDP envia paquetes sin conexion ni garantias, por lo que es mas rapido y sirve para video en directo y juegos."}

@@ -1,0 +1,1 @@
+{"messages":[{"content":"List three benefits of unit testing.","role":"user"}],"output":"1. Detecta errores pronto, cuando son baratos de arreglar.\n2. Hace la refactorizacion mas segura.\n3. Documenta como debe comportarse el codigo."}

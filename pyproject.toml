@@ -13,6 +13,9 @@ dependencies = [
 [project.optional-dependencies]
 dev = ["pytest", "genlayer-test @ git+https://github.com/genlayerlabs/genlayer-testing-suite@v0.29"]
 
+[tool.setuptools]
+packages = ["gzgl"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
