@@ -240,3 +240,18 @@ def test_untrusted_text_cannot_close_a_fence():
 def test_metadata_is_capped_and_single_line():
     assert C.meta("x" * 500) == "x" * 120
     assert "\n" not in C.meta("a\nb")
+
+
+
+def test_cache_write_rate_raises_the_input_ceiling():
+    """A fair prompt-cache write is billed above the input rate; with the write
+    rate on the sheet it is not mistaken for an overcharge (contract v0.5.0)."""
+    policy = {"price_tolerance_bps": 200, "token_slack": 16}
+    e = {"status": 200, "finish_reason": "stop", "model": "m", "tokens_in": 1_000_000, "tokens_out": 0,
+         "tokens_reasoning": 0, "cost_usd": "3.75"}  # all input written to cache at 1.25x
+    plain = {"models": {"m": {"in_per_mtok": "3", "out_per_mtok": "15"}}}
+    with_write = {"models": {"m": {"in_per_mtok": "3", "out_per_mtok": "15", "cache_write_per_mtok": "3.75"}}}
+    assert C.deterministic_check(policy, plain, e, None)["det_reason"] == "price_mismatch"
+    assert C.deterministic_check(policy, with_write, e, None)["det_reason"] == "none"
+    over = dict(e, cost_usd="5")
+    assert C.deterministic_check(policy, with_write, over, None)["det_reason"] == "price_mismatch"

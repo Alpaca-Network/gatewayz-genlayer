@@ -1,4 +1,4 @@
-# v0.4.0
+# v0.5.0
 # { "Depends": "py-genlayer:1jb45aa8ynh2a9c9xn3b7qqh8sm5q93hwfp7jqmwsfhh8jpz09h6" }
 
 """CostDispute — rules on whether billed inference cost too much for the output delivered.
@@ -49,6 +49,7 @@ MAX_SHEET_BYTES = 128_000
 MAX_META_CHARS = 120  # model / finish_reason as shown to the judge
 PRICE_SHEET_FETCH_FAILED = "price_sheet_fetch_failed"
 PRICE_SHEET_HASH_MISMATCH = "price_sheet_hash_mismatch"
+ZERO_HASH = "0x" + "00" * 32  # as price_sheet_hash: each line names its own sheet
 
 
 @allow_storage
@@ -178,13 +179,18 @@ def deterministic_check(policy: dict, sheet: dict, entry: dict, content) -> dict
     """content: the revealed {"messages", "output"} bundle, or None if not revealed/invalid."""
     billed = to_nano(entry["cost_usd"])
     hits = []  # (bps, reason)
-    if entry["status"] != 200 or entry["finish_reason"] == "error":
+    # "timeout": the gateway's own stream watchdog cut a provider that never finished.
+    if entry["status"] != 200 or entry["finish_reason"] in ("error", "timeout"):
         hits.append((10_000, "billed_failure"))
     price = sheet.get("models", {}).get(entry["model"]) if isinstance(sheet, dict) else None
     out_rate = 0
     if isinstance(price, dict):
         try:
             in_rate, out_rate = to_nano(price["in_per_mtok"]), to_nano(price["out_per_mtok"])
+            # A prompt-cache write is billed above the input rate and the line does
+            # not split it out, so the input ceiling is the write rate when listed.
+            if "cache_write_per_mtok" in price:
+                in_rate = max(in_rate, to_nano(price["cache_write_per_mtok"]))
         except (KeyError, ValueError):
             in_rate = out_rate = 0
             hits.append((0, "price_unlisted"))
@@ -365,6 +371,10 @@ class CostDispute(gl.Contract):
         lines_json: str,
     ) -> dict:
         """lines_json: [{"index": int, "entry": {...}, "proof": ["0x.."], "content_uri": "https://..|", "claim": str}]
+        Price sheets: one sheet for every line (price_sheet_uri + its hash), or, with
+        price_sheet_hash = 0x00..00, each line's own sheet fetched from
+        price_sheet_uri + <line's price_sheet hash> (price_sheet_uri ends with "/"),
+        so one dispute can cover lines of different models.
         Only allowlisted submitters (the Gatewayz dispute service, acting for the
         authenticated key owner) may open disputes. A line can be disputed once."""
         if not self.submitters.get(gl.message.sender_address, False):
@@ -377,6 +387,9 @@ class CostDispute(gl.Contract):
         if dispute_id in self.disputes:
             raise gl.vm.UserError("dispute_exists")
         if not price_sheet_uri.startswith("https://") or len(price_sheet_uri) > 512:
+            raise gl.vm.UserError("invalid_price_sheet_uri")
+        per_line_sheets = sheet_hash == ZERO_HASH
+        if per_line_sheets and not price_sheet_uri.endswith("/"):
             raise gl.vm.UserError("invalid_price_sheet_uri")
         policy, policy_hash = parse_policy(policy_json)
         if not self.policies.get(policy_hash, False):
@@ -404,7 +417,10 @@ class CostDispute(gl.Contract):
                 raise gl.vm.UserError("invalid_lines: proof")
             if not verify_proof(leaf_hash(entry), [bytes.fromhex(p[2:]) for p in proof], root):
                 raise gl.vm.UserError("line_not_in_epoch")
-            if str(entry["price_sheet"]).lower() != sheet_hash:
+            if per_line_sheets:
+                if not _is_hex32(entry["price_sheet"]) or str(entry["price_sheet"]).lower() == ZERO_HASH:
+                    raise gl.vm.UserError("invalid_entry: price_sheet")
+            elif str(entry["price_sheet"]).lower() != sheet_hash:
                 raise gl.vm.UserError("price_sheet_mismatch")
             if not _is_hex32(entry["content_hash"]):
                 raise gl.vm.UserError("invalid_entry: content_hash")
@@ -420,18 +436,27 @@ class CostDispute(gl.Contract):
 
         limit = policy["max_excerpt_chars"]
 
-        def leader_fn() -> dict:
-            resp = gl.nondet.web.get(price_sheet_uri)
+        def fetch_sheet(uri: str, expected: str):
+            resp = gl.nondet.web.get(uri)
             if resp.status != 200 or resp.body is None or len(resp.body) > MAX_SHEET_BYTES:
-                return {"error": PRICE_SHEET_FETCH_FAILED, "lines": []}
-            if sha256_hex(resp.body) != sheet_hash:
-                return {"error": PRICE_SHEET_HASH_MISMATCH, "lines": []}
+                return PRICE_SHEET_FETCH_FAILED, {}
+            if sha256_hex(resp.body) != expected:
+                return PRICE_SHEET_HASH_MISMATCH, {}
             try:
-                sheet = json.loads(resp.body.decode("utf-8"))
+                return "", json.loads(resp.body.decode("utf-8"))
             except Exception:
-                sheet = {}
+                return "", {}
+
+        def leader_fn() -> dict:
+            sheets = {}
+            wanted = sorted({str(it["entry"]["price_sheet"]).lower() for it in items}) if per_line_sheets else [sheet_hash]
+            for h in wanted:
+                err, sheets[h] = fetch_sheet(price_sheet_uri + h if per_line_sheets else price_sheet_uri, h)
+                if err:
+                    return {"error": err, "lines": []}
             results, to_judge = [], []
             for it in items:
+                sheet = sheets[str(it["entry"]["price_sheet"]).lower() if per_line_sheets else sheet_hash]
                 content = None
                 if it["content_uri"]:
                     r = gl.nondet.web.get(it["content_uri"])

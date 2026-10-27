@@ -63,3 +63,23 @@ unchanged, so the pinned cross-repo fixture keeps passing. A v2 seal (sha256) is
 and `gitnexus_detect_changes()` before committing. Run them on `_save_request_record`,
 `_bill_stream`, `_run_shielded_billing`, `_process_stream_completion_background` and
 `record_job_usage` first.
+
+## Contract v0.5.0 changes (2026-10-27)
+
+Found while wiring the backend (Alpaca-Network/gatewayz-backend#2410); none changes the
+entry format or any hash, so `fixtures/usage-v2.json` is unchanged.
+
+- **`finish_reason: "timeout"`** (the gateway's stream watchdog cut a provider that never
+  finished) is a billed failure, like `"error"`: 100% deterministic refund.
+- **Prompt-cache writes.** A sheet model may list `cache_write_per_mtok`. The price check
+  then uses `max(in_per_mtok, cache_write_per_mtok)` for input tokens, because the line does
+  not split cached input out. Conservative: a fair cache-write charge is never a
+  `price_mismatch`; an overcharge smaller than the write premium on a cache-write request
+  can go unflagged. Splitting cache tokens into the entry is a v3 format change.
+- **Per-line price sheets.** `open_dispute(..., price_sheet_uri, price_sheet_hash)` with
+  `price_sheet_hash = 0x00..00` and a `price_sheet_uri` ending in `/` fetches each line's
+  own sheet from `price_sheet_uri + <line's price_sheet>`. One dispute can then cover lines
+  of different models (the backend publishes one sheet per model and rate). The
+  single-sheet call is unchanged.
+
+Not deployed: studionet still runs v0.4.0 at `0x23069f4C16F21E48d0E74e6E358485f1FE66B45f`.

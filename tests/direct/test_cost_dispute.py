@@ -110,7 +110,7 @@ def test_a_line_can_only_be_disputed_once(c, direct_vm, epoch):
 
 def test_price_sheet_hash_mismatch_reverts(c, direct_vm, epoch):
     with direct_vm.expect_revert("price_sheet_mismatch"):
-        open_dispute(c, epoch, [line(epoch, 0)], sheet_hash="0x" + "00" * 32)
+        open_dispute(c, epoch, [line(epoch, 0)], sheet_hash="0x" + "11" * 32)
 
 
 def test_only_allowlisted_submitters(c, direct_vm, epoch, direct_alice):
@@ -167,3 +167,49 @@ def test_oversized_content_is_judged_on_metadata_only(direct_vm, direct_deploy, 
     direct_vm.mock_web(r"example\.org/content/0\.json", {"status": 200, "body": bundle_big})
     v = open_dispute(contract, ep, [line(ep, 0)])
     assert v["lines"][0]["content_ok"] is False and v["refund_usd"] == "0"
+
+
+# --------------------------------------------------------------------------- v0.5.0
+
+SHEET_B = {"version": "2026-10-27", "models": {"xai/grok-4": {"in_per_mtok": "3", "out_per_mtok": "15"}}}
+SHEET_B_BYTES = b.canonical_json(SHEET_B)
+SHEET_B_HASH = b.price_sheet_hash(SHEET_B)
+ZERO = "0x" + "00" * 32
+
+
+def test_per_line_sheets_cover_two_models(c, direct_vm):
+    """price_sheet_hash = 0x00..00: each line's own sheet is fetched from base + hash."""
+    direct_vm.mock_web(rf"example\.org/sheets/{SHEET_HASH}", {"status": 200, "body": SHEET_BYTES})
+    direct_vm.mock_web(rf"example\.org/sheets/{SHEET_B_HASH}", {"status": 200, "body": SHEET_B_BYTES})
+    ep = b.Epoch(EPOCH)
+    ep.append(entry(0))
+    # 1000 in x $3 + 20 out x $15 per Mtok = $0.0033: fairly priced on its own sheet.
+    ep.append(entry(1, model="xai/grok-4", provider="xai", price_sheet=SHEET_B_HASH, cost_usd="0.0033"))
+    direct_vm.mock_llm(r".*", json.dumps({"lines": [
+        {"line": 0, "category": "none", "bucket": 0, "reason": "fine"},
+        {"line": 1, "category": "none", "bucket": 0, "reason": "fine"}]}))
+    v = c.open_dispute(DISPUTE, EPOCH, ep.seal()["root"], POLICY_JSON, "https://example.org/sheets/", ZERO,
+                       json.dumps([line(ep, 0, reveal=False), line(ep, 1, reveal=False)]))
+    assert [ln["det_reason"] for ln in v["lines"]] == ["none", "none"]
+    assert v["refund_usd"] == "0"
+
+
+def test_per_line_mode_needs_a_base_uri(c, direct_vm, epoch):
+    with direct_vm.expect_revert("invalid_price_sheet_uri"):
+        open_dispute(c, epoch, [line(epoch, 0)], sheet_hash=ZERO)
+
+
+def test_per_line_mode_refuses_a_zero_line_sheet(c, direct_vm):
+    ep = b.Epoch(EPOCH)
+    ep.append(entry(0, price_sheet=ZERO))
+    with direct_vm.expect_revert("invalid_entry: price_sheet"):
+        c.open_dispute(DISPUTE, EPOCH, ep.seal()["root"], POLICY_JSON, "https://example.org/sheets/", ZERO,
+                       json.dumps([line(ep, 0)]))
+
+
+def test_watchdog_timeout_is_a_billed_failure(c, direct_vm):
+    ep = b.Epoch(EPOCH)
+    ep.append(entry(0, finish_reason="timeout"))
+    direct_vm.mock_llm(r".*", json.dumps({"lines": [{"line": 0, "category": "none", "bucket": 0, "reason": ""}]}))
+    v = open_dispute(c, ep, [line(ep, 0, reveal=False)])
+    assert v["lines"][0]["det_reason"] == "billed_failure" and v["lines"][0]["refund_bps"] == 10_000
