@@ -19,12 +19,10 @@ from gzgl import billing as b  # noqa: E402
 DATA = ROOT / "datasets/disputes/v3"
 OUT = ROOT / "demo/escrow"
 OPEN_MODEL = "meta-llama/llama-3.3-70b-instruct"
-LAB_MODEL = "openai/gpt-5-mini"
 SHEET = {
     "version": "escrow-demo-v1",
     "models": {
         OPEN_MODEL: {"in_per_mtok": "0.25", "out_per_mtok": "2"},
-        LAB_MODEL: {"in_per_mtok": "0.25", "out_per_mtok": "2"},
     },
 }
 
@@ -49,8 +47,8 @@ ITEMS = [
      "Billed for an empty reply. Code refunds 100% without asking a model."),
     ("sql-metering", "Top 5 customers in SQL (retry)", "open-provider", OPEN_MODEL,
      "Billed 2,000 tokens for a short reply. Code refunds the overbilled share."),
-    ("multiply-runaway", "What is 17 x 23?", "openai", LAB_MODEL,
-     "24,000 hidden reasoning tokens for a one-line sum. Expect 50-100% back, paid from the Gatewayz reserve."),
+    ("multiply-runaway", "What is 17 x 23?", "open-provider", OPEN_MODEL,
+     "24,000 hidden reasoning tokens for a one-line sum. Expect 50-100% back."),
 ]
 
 

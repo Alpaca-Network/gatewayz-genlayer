@@ -10,18 +10,18 @@ Accounts
     user:<id>:pending     billed lines inside an open or unfinalized epoch
     user:<id>:held        lines under dispute, waiting for a FINALIZED verdict
     user:<id>:bond        dispute bonds
-    provider:<id>:payable owed to an open provider (paid in arrears, after the window)
-    gatewayz:upstream     recoups what Gatewayz prepaid a lab for an underwritten line
-    gatewayz:reserve      clawback reserve, funded by the 10% escrow fee; may go negative
+    provider:<id>:payable owed to a provider that accepted escrow (paid after the window)
+    gatewayz:upstream     pass-through for requests billed without escrow (e.g. lab models)
+    gatewayz:escrow_fees  the 10% escrow fee: pays for running escrow and GenLayer disputes
     gatewayz:fees         forfeited bonds (they pay for adjudication)
     external:card         money in from card top-ups
 
 Who pays a clawback
-    provider  open providers that accepted terms: their line is still unpaid, so the
-              refund simply never reaches them.
-    reserve   lab models Gatewayz chose to underwrite: the lab was paid upfront, so the
-              refund is made whole from the reserve. Only on the terms' allowlist.
-    Anything else is billed without escrow and cannot be disputed.
+    Only the provider. Escrow is offered only on providers that accepted the terms
+    (paid after the window, bound by GenLayer verdicts): their line is still unpaid,
+    so a refund simply never reaches them. Gatewayz underwrites nothing (decided
+    2026-10-27). Requests to anyone else, including labs that bill upfront, are
+    billed without escrow and cannot be disputed.
 
 A verdict is applied only as the relayer read it from FINALIZED GenLayer state; the
 ledger re-checks that it covers exactly the disputed lines at the billed amounts.
@@ -47,9 +47,8 @@ class EscrowTerms:
     adjudication_s: int = 2 * DAY                # verdict expected within this after a dispute opens
     bond_min_nano: int = 1 * NANO                # max($1, 10% of contested)
     bond_bps: int = 1_000
-    fee_bps: dict = field(default_factory=lambda: {"provider": 1_000, "reserve": 1_000})  # 10% (decided 2026-10-22)
-    open_providers: frozenset = frozenset()      # accept clawbacks, paid in arrears
-    underwritten_models: frozenset = frozenset() # lab models Gatewayz underwrites
+    fee_bps: int = 1_000                         # 10% escrow fee (decided 2026-10-22)
+    open_providers: frozenset = frozenset()      # accept clawbacks, paid after the window
     refund_cap_bps: int = 2_500                  # refunds <= 25% of the user's escrowed spend per 30-day period
     allowed_policies: frozenset = frozenset()
 
@@ -59,7 +58,7 @@ class Line:
     cost: int
     fee: int
     provider: str
-    clawback: str      # "provider" | "reserve" | "" (not escrowed)
+    clawback: str      # "provider" | "" (not escrowed)
     state: str         # pending | held | paid | settled
 
 
@@ -121,11 +120,7 @@ class Ledger:
         self._move("external:card", f"user:{user}:available", to_nano(usd), "top-up")
 
     def clawback_source(self, entry: dict) -> str:
-        if entry["provider"] in self.terms.open_providers:
-            return "provider"
-        if entry["model"] in self.terms.underwritten_models:
-            return "reserve"
-        return ""
+        return "provider" if entry["provider"] in self.terms.open_providers else ""
 
     def charge(self, epoch_id: str, user: str, entry: dict) -> int:
         """Bill one usage entry. Returns its index, which must match gzgl.billing.Epoch."""
@@ -136,9 +131,9 @@ class Ledger:
         idx = len(ep.lines)
         memo = f"{epoch_id}:{idx}"
         if source:
-            fee = cost * self.terms.fee_bps[source] // 10_000
+            fee = cost * self.terms.fee_bps // 10_000
             self._spend(user, f"user:{user}:pending", cost, memo)
-            self._spend(user, "gatewayz:reserve", fee, memo + " escrow fee")
+            self._spend(user, "gatewayz:escrow_fees", fee, memo + " escrow fee")
             ep.lines.append(Line(cost, fee, entry["provider"], source, "pending"))
         else:
             self._spend(user, self._payee(entry["provider"], ""), cost, memo)
@@ -209,8 +204,6 @@ class Ledger:
             held = f"user:{d.user}:held"
             self._move(held, f"user:{d.user}:available", refund, f"{did} refund {i}")
             self._move(held, self._payee(line.provider, line.clawback), line.cost - refund, f"{did} release {i}")
-            if line.clawback == "reserve":
-                self._move("gatewayz:reserve", "gatewayz:upstream", refund, f"{did} underwrite {i}")
             line.state = "settled"
             total += refund
         self._refunded[period] = self._refunded.get(period, 0) + total

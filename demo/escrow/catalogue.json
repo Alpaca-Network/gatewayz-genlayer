@@ -1,6 +1,6 @@
 {
  "price_sheet_path": "demo/escrow/prices.json",
- "price_sheet_hash": "0x6f460ea69c4444cf1285169c013e6e8eb493032faebeeb288dbc106d943284a3",
+ "price_sheet_hash": "0xa4f2555fd36af3733a6c90e4b12fa1f25bde4e99ef8bd40a259303c287bdb701",
  "items": [
   {
    "id": "capital-fair",
@@ -203,9 +203,9 @@
   {
    "id": "multiply-runaway",
    "title": "What is 17 x 23?",
-   "provider": "openai",
-   "model": "openai/gpt-5-mini",
-   "expect": "24,000 hidden reasoning tokens for a one-line sum. Expect 50-100% back, paid from the Gatewayz reserve.",
+   "provider": "open-provider",
+   "model": "meta-llama/llama-3.3-70b-instruct",
+   "expect": "24,000 hidden reasoning tokens for a one-line sum. Expect 50-100% back.",
    "variant": "runaway_reasoning",
    "prompt": "What is 17 x 23?",
    "output": "17 x 23 = 391.",

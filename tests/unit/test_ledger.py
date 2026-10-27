@@ -10,7 +10,7 @@ from gzgl.ledger import DAY, NANO, EscrowTerms, Ledger, LedgerError
 POLICY = "0x" + "ab" * 32
 EPOCH = "0x" + "e1" * 32
 T0 = 1_800_000_000
-TERMS = EscrowTerms(open_providers=frozenset({"gatewayz-gpu"}), underwritten_models=frozenset({"openai/gpt-5-mini"}),
+TERMS = EscrowTerms(open_providers=frozenset({"gatewayz-gpu"}),
                     allowed_policies=frozenset({POLICY}), refund_cap_bps=10_000)  # cap tested on its own
 
 
@@ -42,11 +42,11 @@ def test_undisputed_epoch_pays_providers_after_the_window():
     led, _ = build([entry(0), entry(1, model="openai/gpt-5-mini", provider="openai")])
     with pytest.raises(LedgerError, match="window_open"):
         led.finalize_epoch(EPOCH, T0 + 3 * DAY - 1)
-    assert led.finalize_epoch(EPOCH, T0 + 3 * DAY) == b.to_nano("0.80")
+    assert led.finalize_epoch(EPOCH, T0 + 3 * DAY) == b.to_nano("0.40")  # only the escrowed line was held
     bal = led.balances()
     assert bal["provider:gatewayz-gpu:payable"] == b.to_nano("0.40")
-    assert bal["gatewayz:upstream"] == b.to_nano("0.40")
-    assert bal["gatewayz:reserve"] == 2 * b.to_nano("0.04")  # 10% escrow fee on both lines
+    assert bal["gatewayz:upstream"] == b.to_nano("0.40")  # lab line: billed without escrow
+    assert bal["gatewayz:escrow_fees"] == b.to_nano("0.04")  # 10% fee on the escrowed line only
     assert "user:u:pending" not in bal
 
 
@@ -62,13 +62,17 @@ def test_provider_line_refund_never_reaches_the_provider():
     assert "user:u:held" not in bal and "user:u:bond" not in bal
 
 
-def test_underwritten_line_refund_comes_out_of_the_reserve():
-    led, root = build([entry(0, model="openai/gpt-5-mini", provider="openai")])
-    led.open_dispute("0xd1", EPOCH, [0], T0)
-    led.apply_verdict(verdict(root, [(0, "0.4", 10_000)]))
+def test_gatewayz_never_funds_a_refund():
+    """Labs bill upfront and accept no clawback, so their lines are not escrowed and
+    cannot be disputed; no Gatewayz account ever pays a user back."""
+    led, root = build([entry(0, model="openai/gpt-5-mini", provider="openai"), entry(1)])
+    with pytest.raises(LedgerError, match="line_not_escrowed"):
+        led.open_dispute("0xd1", EPOCH, [0], T0)
+    led.open_dispute("0xd1", EPOCH, [1], T0)
+    led.apply_verdict(verdict(root, [(1, "0.4", 10_000)]))
     bal = led.balances()
-    assert bal["gatewayz:reserve"] == b.to_nano("0.04") - b.to_nano("0.40")  # negative: reserve shortfall shows
-    assert bal["gatewayz:upstream"] == b.to_nano("0.40")  # the reserve made Gatewayz whole for the lab bill
+    assert bal["gatewayz:upstream"] == b.to_nano("0.40") and bal["gatewayz:escrow_fees"] == b.to_nano("0.04")
+    assert not [k for k, v in bal.items() if k.startswith("gatewayz:") and v < 0]
 
 
 def test_lost_dispute_forfeits_the_bond():
@@ -157,7 +161,7 @@ def test_random_flows_keep_balances_sane():
             led.apply_verdict(verdict(root, [(i, es[i]["cost_usd"], rng.choice([0, 2500, 5000, 7500, 10000])) for i in sorted(picked)]))
         bal = led.balances()
         assert sum(bal.values()) == 0
-        assert not [k for k, v in bal.items() if v < 0 and k not in ("external:card", "gatewayz:reserve")], trial
+        assert not [k for k, v in bal.items() if v < 0 and k != "external:card"], trial
         assert not [k for k in bal if k.endswith((":pending", ":held", ":bond"))], trial
 
 
