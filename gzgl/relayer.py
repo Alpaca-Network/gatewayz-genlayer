@@ -31,35 +31,11 @@ class VerdictError(RuntimeError):
 
 
 class VerdictSource(Protocol):
-    def finalized_verdict(self, job_id: str, gl_tx: str) -> dict | None: ...
-
-
-class GenLayerVerdicts:
-    """Reads verdicts from a deployed VerifyJob, finalized state only."""
-
-    def __init__(self, client, verify_address: str):
-        self.client = client
-        self.verify_address = verify_address
-
     def finalized_verdict(self, job_id: str, gl_tx: str) -> dict | None:
         from genlayer_py.types import TransactionHashVariant
 
-        tx = self.client.get_transaction(transaction_hash=gl_tx)
-        if tx is None:
+        if not finalized_tx(self.client, gl_tx, self.verify_address, "VerifyJob"):
             return None
-        status = str(tx.get("status_name") or "")
-        if status in ("CANCELED", "UNDETERMINED", "VALIDATORS_TIMEOUT"):
-            raise VerdictError(f"case tx {gl_tx} ended {status}")
-        if status != "FINALIZED":
-            return None
-        result = tx.get("result_name")
-        if result is not None and str(result) not in ("AGREE", "MAJORITY_AGREE"):
-            raise VerdictError(f"case tx {gl_tx} finalized without agreement ({result})")
-        if tx.get("tx_execution_result_name") not in (None, "FINISHED_WITH_RETURN"):
-            raise VerdictError(f"case tx {gl_tx} finished with error")
-        to = str(tx.get("to_address") or tx.get("recipient") or "")
-        if to.lower() != self.verify_address.lower():
-            raise VerdictError(f"case tx {gl_tx} was sent to {to}, not VerifyJob")
         verdict = self.client.read_contract(
             address=self.verify_address,
             function_name="get_verdict",
@@ -69,6 +45,50 @@ class GenLayerVerdicts:
         if str(verdict.get("job_id", "")).lower() != job_id.lower():
             raise VerdictError("verdict job_id mismatch")
         return dict(verdict)
+
+
+class CostDisputeVerdicts:
+    """Reads CostDispute verdicts, finalized state only, for gzgl.ledger.Ledger.apply_verdict."""
+
+    def __init__(self, client, dispute_address: str):
+        self.client = client
+        self.dispute_address = dispute_address
+
+    def finalized_verdict(self, dispute_id: str, gl_tx: str) -> dict | None:
+        from genlayer_py.types import TransactionHashVariant
+
+        if not finalized_tx(self.client, gl_tx, self.dispute_address, "CostDispute"):
+            return None
+        verdict = self.client.read_contract(
+            address=self.dispute_address,
+            function_name="get_dispute",
+            args=[dispute_id],
+            transaction_hash_variant=TransactionHashVariant.LATEST_FINAL,
+        )
+        if str(verdict.get("dispute_id", "")).lower() != dispute_id.lower():
+            raise VerdictError("verdict dispute_id mismatch")
+        return dict(verdict)
+
+
+def finalized_tx(client, gl_tx: str, address: str, name: str) -> bool:
+    """True once gl_tx is FINALIZED with agreement on `address`; VerdictError if it never will be."""
+    tx = client.get_transaction(transaction_hash=gl_tx)
+    if tx is None:
+        return False
+    status = str(tx.get("status_name") or "")
+    if status in ("CANCELED", "UNDETERMINED", "VALIDATORS_TIMEOUT"):
+        raise VerdictError(f"case tx {gl_tx} ended {status}")
+    if status != "FINALIZED":
+        return False
+    result = tx.get("result_name")
+    if result is not None and str(result) not in ("AGREE", "MAJORITY_AGREE"):
+        raise VerdictError(f"case tx {gl_tx} finalized without agreement ({result})")
+    if tx.get("tx_execution_result_name") not in (None, "FINISHED_WITH_RETURN"):
+        raise VerdictError(f"case tx {gl_tx} finished with error")
+    to = str(tx.get("to_address") or tx.get("recipient") or "")
+    if to.lower() != address.lower():
+        raise VerdictError(f"case tx {gl_tx} was sent to {to}, not {name}")
+    return True
 
 
 @dataclass

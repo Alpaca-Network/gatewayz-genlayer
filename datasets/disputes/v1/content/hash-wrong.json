@@ -1,0 +1,1 @@
+{"messages":[{"content":"Explain what a hash function is to a 12-year-old in 3 sentences.","role":"user"}],"output":"A hash function is a way to lock a message with a password. You can unlock it later with the same password to read the message again. Computers use it to hide secrets."}
