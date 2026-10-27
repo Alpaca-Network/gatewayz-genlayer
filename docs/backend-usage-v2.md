@@ -83,8 +83,12 @@ entry format or any hash, so `fixtures/usage-v2.json` is unchanged.
   single-sheet call is unchanged.
 
 Deployed 2026-10-27 to studionet at `0x661036e09B406Fc4A0AB3cBf95C0FdE2e86ECdfe` (fbp-v1..v5
-approved; smoke test decided). v0.4.0 at `0x23069f4C16F21E48d0E74e6E358485f1FE66B45f` stays up for
-the gatewayz.ai/escrow demo until its submitter is allowlisted on v0.5.0.
+approved; smoke test decided). The gatewayz.ai/escrow demo reads `cost_dispute` from this repo's
+deployments file, so it moved to v0.5.0 with it. Its submitter was allowlisted there only later the same
+day (tx `0x29e4aa77…d715`); until then every demo dispute was refused with `submitter_not_allowed`.
+**After any redeploy, run `set_submitter` for the demo submitter** (`~/.gatewayz-escrow-demo.env`)
+before the site's pinned ref picks up the new address. The orchestrator's daily end-to-end dispute
+canary catches a miss. v0.4.0 at `0x23069f4C16F21E48d0E74e6E358485f1FE66B45f` is no longer used.
 
 ## Decisions (2026-10-27)
 
