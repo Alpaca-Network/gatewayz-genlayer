@@ -14,5 +14,6 @@
     "fbp-v4": "0xb8ce77d6aea0865760c4efc3ea4d584e7ca84564775774b53fc0a27362d0c33d",
     "fbp-v5": "0xb854098d6d0fe679977ecb8e8eec9ed3135c2190df873dfc43e3860dbc5f7bd7"
   },
-  "cost_dispute_v0_3": "0xdda926fA4974845B09807a77d73D4f14e91355b3"
+  "cost_dispute_v0_3": "0xdda926fA4974845B09807a77d73D4f14e91355b3",
+  "cost_dispute_v0_4": "0x23069f4C16F21E48d0E74e6E358485f1FE66B45f"
 }
