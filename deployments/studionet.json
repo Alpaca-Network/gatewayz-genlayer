@@ -2,9 +2,9 @@
   "verify_job": "0xAd47e32565A01F55eB7E08659F699613Af1d7Bcd",
   "verify_job_deploy_tx": "0xe0f282248b2ea266334bdebc441fbbdd5d44b6a169543bc6aafceefdb3ea77ab",
   "operator": "0x2B227F5f2CD072120a38F3a2780607403340678B",
-  "cost_dispute": "0x23069f4C16F21E48d0E74e6E358485f1FE66B45f",
-  "cost_dispute_deploy_tx": "0x6176c47b1fd9ba0bba9e38fdd80347abc55976bcf0cb28bf18ce87066b50530c",
-  "cost_dispute_operator": "0x91394383e842840ac42dE773153efA6D597211c7",
+  "cost_dispute": "0x661036e09B406Fc4A0AB3cBf95C0FdE2e86ECdfe",
+  "cost_dispute_deploy_tx": "0xa9e7d27581b7311cb69ecec2c950f2e3974ea2e8ba8cb1341b4fa0f1997830de",
+  "cost_dispute_operator": "0xe4c966988B34d5510b1e21e97C51E56649FF9cD7",
   "cost_dispute_v0_1": "0xdb8889f31b398A26Db8AE09EB555B8acA04a4A1F",
   "cost_dispute_v0_2": "0xC29DfA269f0CBb4625Cf3086723aacD4602A5C79",
   "cost_dispute_policies": {

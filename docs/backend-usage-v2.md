@@ -82,4 +82,18 @@ entry format or any hash, so `fixtures/usage-v2.json` is unchanged.
   of different models (the backend publishes one sheet per model and rate). The
   single-sheet call is unchanged.
 
-Not deployed: studionet still runs v0.4.0 at `0x23069f4C16F21E48d0E74e6E358485f1FE66B45f`.
+Deployed 2026-10-27 to studionet at `0x661036e09B406Fc4A0AB3cBf95C0FdE2e86ECdfe` (fbp-v1..v5
+approved; smoke test decided). v0.4.0 at `0x23069f4C16F21E48d0E74e6E358485f1FE66B45f` stays up for
+the gatewayz.ai/escrow demo until its submitter is allowlisted on v0.5.0.
+
+## Decisions (2026-10-27)
+
+- **Failover re-pricing:** disputes judge the rate actually charged. Each line's sheet is
+  the rates its charge was computed from, including the backend's loss-proof re-price to
+  a pricier served provider. The contract verifies that the bill was computed honestly
+  from published rates. Whether charging the served provider's rate on failover is fair
+  is a Gatewayz pricing-policy question, outside the refund rules.
+- **`/v1/messages` system prompt:** included. For an Anthropic-shaped body the bundle's
+  `messages` is `[{"role": "system", "content": <system exactly as sent>}, *messages]`
+  (system omitted when absent/empty). OpenAI bodies stay verbatim. Clients rebuild the
+  same list from what they sent.
