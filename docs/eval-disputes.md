@@ -6,25 +6,31 @@ not committed).
 
 **Read the caveats first.** Every case is synthetic, and the same author wrote the policy, the
 cases and the labels. That makes the numbers below a test of *consistency with the written
-policy*, not of fairness to real users. Quote them only after a human has reviewed the labels,
-and after a run on real disputed traffic.
+policy*, not of fairness to real users.
+
+**How to quote them (decision 2026-10-29).** GenLayer validators are the judge for borderline
+cases, so the 64 borderline cases in `datasets/disputes/v3/REVIEW.md` are not hand-labelled
+ground truth. Outside the team, quote only the *clear-cut* row below, and report the borderline
+cases separately as validator-decided, never as agreement. Real disputed traffic is still
+needed before any fairness claim.
 
 ## Runs
 
-| | v1 | v2 | v3 (regression) | v4 (hardened) | v5 (worked examples) |
-|---|---|---|---|---|---|
-| Dataset / policy | `datasets/disputes/v1` (196) / `fbp-v1` | `datasets/disputes/v2` (216) / `fbp-v2` | v2 set / `fbp-v3` | `datasets/disputes/v3` (216) / `fbp-v4` | v3 set / `fbp-v5` |
-| Contract | v0.1.0 `0xdb8889f3…4A1F` | v0.2.0 `0xC29DfA26…5C79` | v0.3.0 `0xdda926fA…55b3` | v0.4.0 `0x23069f4C…B45f` | same |
-| Data ref | `a852b7e` | `29b81f0` | `a458271` | `99f4997` | `60049d4` |
-| Lines per dispute | 10 | 5 | 5 | 5 | 5 |
-| Deterministic layer exact | 166/166 | 206/206 | 216/216 | 211/211 | 216/216 |
-| Judged refund bucket in label range | 130/147 (88%) | 185/188 (98.4%) | 194/196 (99.0%) | **186/191 (97.4%)** | **196/196 (100%)** |
-| Judged category matches | 146/147 | 186/188 | 195/196 | 189/191 | 196/196 |
-| False refunds (label 0, refunded) | 0 | 1 | 0 | **0** | **0** |
-| Missed refunds (label >0, refunded 0) | 1 | 1 | 1 | 1 | 0 |
-| Disputes without consensus (MAJORITY_DISAGREE) | 2/20 | 0/44 | 0/44 | 0/44 | 0/44 |
-| Disputes lost to studionet RPC errors | 2/20 | 2/44 | 0/44 (wider retry) | 1/44 | 0/44 |
-| Time to ACCEPTED: p50 / p90 / max | 34 s / 123 s / 288 s | 21 s / 150 s / 1077 s | 34 s / 1021 s / 5445 s | 27 s / 86 s / 275 s | 26 s / 72 s / 129 s |
+| | v1 | v2 | v3 (regression) | v4 (hardened) | v5 (worked examples) | v0.5.0 (live contract) |
+|---|---|---|---|---|---|---|
+| Dataset / policy | `datasets/disputes/v1` (196) / `fbp-v1` | `datasets/disputes/v2` (216) / `fbp-v2` | v2 set / `fbp-v3` | `datasets/disputes/v3` (216) / `fbp-v4` | v3 set / `fbp-v5` | v3 set / `fbp-v5` |
+| Contract | v0.1.0 `0xdb8889f3…4A1F` | v0.2.0 `0xC29DfA26…5C79` | v0.3.0 `0xdda926fA…55b3` | v0.4.0 `0x23069f4C…B45f` | same | v0.5.0 `0x661036e0…ECdfe` |
+| Data ref | `a852b7e` | `29b81f0` | `a458271` | `99f4997` | `60049d4` | `36e65a0` |
+| Lines per dispute | 10 | 5 | 5 | 5 | 5 | 10 |
+| Deterministic layer exact | 166/166 | 206/206 | 216/216 | 211/211 | 216/216 | 216/216 |
+| Judged refund bucket in label range | 130/147 (88%) | 185/188 (98.4%) | 194/196 (99.0%) | **186/191 (97.4%)** | **196/196 (100%)** | 194/196 (99.0%) |
+| **Clear-cut cases only** (excl. the 64 borderline; quote this one) | – | – | – | 128/129 | 132/132 | **131/132** |
+| Judged category matches | 146/147 | 186/188 | 195/196 | 189/191 | 196/196 | 195/196 |
+| False refunds (label 0, refunded) | 0 | 1 | 0 | **0** | **0** | **0** |
+| Missed refunds (label >0, refunded 0) | 1 | 1 | 1 | 1 | 0 | 0 |
+| Disputes without consensus (MAJORITY_DISAGREE) | 2/20 | 0/44 | 0/44 | 0/44 | 0/44 | 0/22 |
+| Disputes lost to studionet RPC errors | 2/20 | 2/44 | 0/44 (wider retry) | 1/44 | 0/44 | 0/22 |
+| Time to ACCEPTED: p50 / p90 / max | 34 s / 123 s / 288 s | 21 s / 150 s / 1077 s | 34 s / 1021 s / 5445 s | 27 s / 86 s / 275 s | 26 s / 72 s / 129 s | 32 s / 96 s / 101 s |
 
 Fees: studionet is free, so the cost per dispute is **not measured yet**. That needs a Bradbury run.
 
@@ -106,11 +112,21 @@ Read it with care:
   although the only policy change was the loop examples, which say nothing about language. The label (50–100%) is doubtful, so v5 "passing" it
   proves little. One run per policy is not enough to separate a policy effect from noise.
 
+## v0.5.0 (live contract), 2026-10-27
+
+Same dataset and policy as v5 (`fbp-v5`), on the hardened v0.5.0 contract that the demo uses,
+with the default 10-line batches instead of 5. 194/196 in range, 0 false refunds, 0 missed
+refunds, all 22 disputes reached consensus, p90 96 s. The two misses:
+- `equation-looptail` (clear-cut): refunded 50%, label 75–100%. An under-refund, not a false
+  one.
+- `testing-looptail-short` (borderline): refunded 50%, label 0–25%. The short-loop 50% from
+  v4 again, despite the v5 examples. Validator-decided under the 2026-10-29 rule.
+
 ## Next
 
 1. ~~Prompt fix + `max_tokens` line → fbp-v3~~ done (v3 above).
-2. Human review of the labels (sample at least the borderline variants: `loop_tail_short`,
-   `max_tokens_truncation`, `wrong_but_attempted`, `reasoning_below_threshold`).
+2. ~~Human review of the labels~~ dropped 2026-10-29: validators decide the borderline cases;
+   quote the clear-cut row only.
 3. Bradbury run to measure fees per dispute, and finality and appeal times.
 4. Real traffic: once the backend records v2 lines (`docs/backend-usage-v2.md`), sample real
    failed and suspicious requests (with consent) into a v4 set.
