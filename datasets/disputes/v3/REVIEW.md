@@ -1,5 +1,7 @@
 # Label review: v3, borderline cases
 
+> **Status (2026-10-29): not needed.** Decision: GenLayer validators are the judge for these borderline cases, so the Ruling column stands and no hand review is required. Accuracy quoted outside covers unambiguous cases only; these 64 are reported as validator-decided.
+
 Ruling column: run `eval-studionet-1792681664.json` (policy `policies/fbp-v5.json`, contract `0x23069f4C16F21E48d0E74e6E358485f1FE66B45f`). Mark **Your call** as ✅ (label right), ❌ (label wrong, say what it should be) or ? (unsure). Disagreements between label and ruling are marked ⚠️.
 
 ## loop_tail_short (20)
