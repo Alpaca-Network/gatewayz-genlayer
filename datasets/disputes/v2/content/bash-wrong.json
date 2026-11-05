@@ -1,0 +1,1 @@
+{"messages":[{"content":"Write a bash one-liner that counts the lines in all .py files in the current directory tree.","role":"user"}],"output":"wc -l *.py"}

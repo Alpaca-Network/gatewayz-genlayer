@@ -1,0 +1,1 @@
+{"messages":[{"content":"Give a JSON object with keys name, age and city for a fictional person.","role":"user"}],"output":"SELECT c.name, SUM(o.amount) AS total\nFROM customers c\nJOIN orders o ON o.customer_id = c.id\nGROUP BY c.id, c.name\nORDER BY total DESC\nLIMIT 5;"}

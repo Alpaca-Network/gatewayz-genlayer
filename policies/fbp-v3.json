@@ -1,0 +1,30 @@
+{
+  "version": "fbp-v3",
+  "refund_buckets_bps": [
+    0,
+    2500,
+    5000,
+    7500,
+    10000
+  ],
+  "bucket_tolerance": 1,
+  "price_tolerance_bps": 100,
+  "token_slack": 16,
+  "max_lines": 10,
+  "max_excerpt_chars": 4000,
+  "runaway_reasoning_min_tokens": 4000,
+  "runaway_reasoning_ratio": 20,
+  "refundable": [
+    "Degenerate output: repetition loops, garbage characters, or prose in a language the request did not ask for. Code, numbers and formulas are language-neutral and never count as wrong-language",
+    "Off-task output: the response does not attempt the request at all (not merely a weak or wrong answer)",
+    "Runaway reasoning: hidden reasoning tokens grossly out of proportion to a simple request and its short visible answer"
+  ],
+  "not_refundable": [
+    "The user disliked the answer, or found it mediocre, incomplete or factually wrong while it did attempt the request",
+    "The output was long because the request asked for long output",
+    "A refusal the provider's published usage policy requires",
+    "A usable answer followed by a little extra text that is harmless",
+    "Output cut off because the request's own max_tokens limit was reached (finish_reason=length)"
+  ],
+  "partial": "When only part of the output is degenerate, refund about the share of the billed output that is wasted, using the nearest bucket"
+}

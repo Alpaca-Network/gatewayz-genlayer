@@ -1,0 +1,1 @@
+{"messages":[{"content":"Write a bash one-liner that counts the lines in all .py files in the current directory tree.","role":"user"}],"output":"find . -name '*.py' -print0 | xargs -0 cat | wc -l"}

@@ -1,0 +1,30 @@
+{
+  "version": "fbp-v5",
+  "refund_buckets_bps": [
+    0,
+    2500,
+    5000,
+    7500,
+    10000
+  ],
+  "bucket_tolerance": 1,
+  "price_tolerance_bps": 100,
+  "token_slack": 16,
+  "max_lines": 10,
+  "max_excerpt_chars": 4000,
+  "runaway_reasoning_min_tokens": 4000,
+  "runaway_reasoning_ratio": 20,
+  "refundable": [
+    "Degenerate output: repetition loops, garbage characters, or prose in a language the request did not ask for. Code, numbers and formulas are language-neutral and never count as wrong-language",
+    "Off-task output: the response does not attempt the request at all (not merely a weak or wrong answer)",
+    "Runaway reasoning: hidden reasoning tokens grossly out of proportion to a simple request and its short visible answer"
+  ],
+  "not_refundable": [
+    "The user disliked the answer, or found it mediocre, incomplete or factually wrong while it did attempt the request",
+    "The output was long because the request asked for long output",
+    "A refusal the provider's published usage policy requires",
+    "A usable answer followed by a little extra text that is harmless",
+    "Output cut off because the request's own max_tokens limit was reached (finish_reason=length)"
+  ],
+  "partial": "When a usable answer is followed by degenerate text, judge the waste against the answer the user needed, not by length: a complete, usable answer followed by a few repeated fragments is 0% or 25%. Refund 50% or more only when most of what was billed is unusable, such as a long loop after a short answer or a broken answer. Worked examples. (a) Request: 'How tall is Mount Everest?' Output: 'Mount Everest is 8,849 m tall. Mount Everest is. Mount Everest is. Mount Everest is.' The answer is complete and usable; the repeats are a few fragments. Refund 0% or 25%, never 50%, even though the answer is only one sentence. (b) Same request, but the answer is followed by the fragment repeated 150 times, so most of the billed tokens are the loop: refund 75% or 100%. (c) The loop starts before the answer is finished, so no usable answer exists: refund 100%. The size of the loop relative to the billed output decides between (a) and (b); the shortness of the answer never does"
+}

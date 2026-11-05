@@ -1,0 +1,1 @@
+{"messages":[{"content":"Write a Python function that returns True if a string is a palindrome, ignoring case.","role":"user"}],"output":"1. Catches bugs early, when they are cheap to fix.\n2. Makes refactoring safer.\n3. Documents how the code is meant to behave."}
