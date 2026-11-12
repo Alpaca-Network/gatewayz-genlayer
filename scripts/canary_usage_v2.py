@@ -11,7 +11,9 @@ makes about the line is checked from the outside:
   5. the contract's own deterministic checks do not flag the line (gzgl/replay)
 
 Needs GATEWAYZ_CANARY_API_KEY (an ordinary account key that may open jobs) in
-~/.gatewayz-genlayer-canary.env or the environment. Without it: not configured.
+~/.gatewayz-genlayer-canary.env or the environment; falls back to GATEWAYZ_TEST_API_KEY
+from ~/.gatewayz.env so the test key isn't copied into a second file. Without either:
+not configured.
 Cost: one request capped at 16 output tokens, job cap $0.05. Prints one JSON line.
 Exit 0 pass, 1 fail, 3 not configured / v2 off.
 """
@@ -31,17 +33,21 @@ from gzgl import billing as b  # noqa: E402
 from gzgl.replay import replay  # noqa: E402
 
 ENV_FILE = Path.home() / ".gatewayz-genlayer-canary.env"
+SHARED_ENV_FILE = Path.home() / ".gatewayz.env"
 POLICY = json.loads((Path(__file__).resolve().parents[1] / "policies/fbp-v5.json").read_text())
 
 
 def _env() -> dict:
     env = dict(os.environ)
-    if ENV_FILE.exists():
-        for line in ENV_FILE.read_text().splitlines():
-            line = line.strip().removeprefix("export ")
-            if line and not line.startswith("#") and "=" in line:
-                k, v = line.split("=", 1)
-                env.setdefault(k.strip(), v.strip().strip("'\""))
+    for path in (ENV_FILE, SHARED_ENV_FILE):
+        if path.exists():
+            for line in path.read_text().splitlines():
+                line = line.strip().removeprefix("export ")
+                if line and not line.startswith("#") and "=" in line:
+                    k, v = line.split("=", 1)
+                    env.setdefault(k.strip(), v.strip().strip("'\""))
+    if not env.get("GATEWAYZ_CANARY_API_KEY") and env.get("GATEWAYZ_TEST_API_KEY"):
+        env["GATEWAYZ_CANARY_API_KEY"] = env["GATEWAYZ_TEST_API_KEY"]
     return env
 
 
