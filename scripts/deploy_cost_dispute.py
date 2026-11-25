@@ -14,9 +14,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from gzgl.billing import policy_hash  # noqa: E402
-from gzgl.net import DEPLOYMENTS, genlayer_client  # noqa: E402
-
-from genlayer_py.types import TransactionStatus  # noqa: E402
+from gzgl.net import DEPLOYMENTS, genlayer_client, gl_contract_address, gl_deploy, gl_wait, gl_write  # noqa: E402
 
 CONTRACT = ROOT / "contracts/genlayer/cost_dispute.py"
 
@@ -28,16 +26,14 @@ policies = [Path(p) for p in a.policy] or sorted((ROOT / "policies").glob("fbp-*
 
 client = genlayer_client(a.network)
 print(f"deploying CostDispute to {a.network} from {client.local_account.address}")
-tx = client.deploy_contract(code=CONTRACT.read_text(), args=[])
+tx = gl_deploy(client, CONTRACT.read_text(), [])
 print("tx", tx)
-r = client.wait_for_transaction_receipt(transaction_hash=tx, status=TransactionStatus.ACCEPTED, retries=200)
-addr = (r.get("tx_data_decoded") or {}).get("contract_address") or (r.get("data") or {}).get("contract_address")
+addr = gl_contract_address(gl_wait(client, tx))
 print("CostDispute at", addr)
 approved = {}
 for p in policies:
     h = policy_hash(json.loads(p.read_text()))
-    t = client.write_contract(address=addr, function_name="set_policy", args=[h, True])
-    client.wait_for_transaction_receipt(transaction_hash=t, status=TransactionStatus.ACCEPTED, retries=200)
+    gl_wait(client, gl_write(client, addr, "set_policy", [h, True]))
     approved[p.stem] = h
     print("approved", p.stem, h)
 out = DEPLOYMENTS / f"{a.network}.json"

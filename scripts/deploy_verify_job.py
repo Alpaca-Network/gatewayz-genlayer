@@ -10,9 +10,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from gzgl.net import DEPLOYMENTS, genlayer_client  # noqa: E402
-
-from genlayer_py.types import TransactionStatus  # noqa: E402
+from gzgl.net import DEPLOYMENTS, genlayer_client, gl_contract_address, gl_deploy, gl_wait  # noqa: E402
 
 CONTRACT = Path(__file__).resolve().parents[1] / "contracts/genlayer/verify_job.py"
 
@@ -25,10 +23,9 @@ a = ap.parse_args()
 
 client = genlayer_client(a.network)
 print(f"deploying VerifyJob to {a.network} from {client.local_account.address}")
-tx = client.deploy_contract(code=CONTRACT.read_text(), args=[a.bridge_sender, a.target_eid, a.escrow])
+tx = gl_deploy(client, CONTRACT.read_text(), [a.bridge_sender, a.target_eid, a.escrow])
 print("tx", tx)
-r = client.wait_for_transaction_receipt(transaction_hash=tx, status=TransactionStatus.ACCEPTED, retries=200)
-addr = (r.get("tx_data_decoded") or {}).get("contract_address") or (r.get("data") or {}).get("contract_address")
+addr = gl_contract_address(gl_wait(client, tx))
 print("VerifyJob at", addr)
 out = DEPLOYMENTS / f"{a.network}.json"
 d = json.loads(out.read_text()) if out.exists() else {}

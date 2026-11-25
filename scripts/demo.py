@@ -33,7 +33,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from gzgl.net import DEPLOYMENTS, fuji, genlayer_client, key  # noqa: E402
+from gzgl.net import DEPLOYMENTS, fuji, genlayer_client, gl_wait, gl_write, key  # noqa: E402
 from gzgl.relayer import GenLayerVerdicts, Relayer, load_abi  # noqa: E402
 from gzgl.rubric import rubric_hash  # noqa: E402
 from gzgl.usage import UsageRecord  # noqa: E402
@@ -191,19 +191,17 @@ def step_verify(run: Path) -> None:
     st = load(run)
     if st.get("genlayer_tx"):
         return print(f"[verify] case already submitted: {st['genlayer_tx']}")
-    from genlayer_py.types import TransactionStatus
-
     dep = deployments(st)
     client = genlayer_client(st["genlayer_network"])
     t0 = time.time()
-    tx = client.write_contract(address=dep["verify_job"], function_name="submit_case", args=[
+    tx = gl_write(client, dep["verify_job"], "submit_case", [
         st["job_id"], st["spec_uri"], st["spec_hash"], st["deliverable_uri"], st["deliverable_hash"],
         st["usage"]["root"], Path(st["rubric_path"]).read_text()])
     st["genlayer_tx"] = tx
     save(run, st)
     _relayer(st).register(st["job_id"], tx)
     print(f"[verify] case tx {tx} — waiting for consensus")
-    client.wait_for_transaction_receipt(transaction_hash=tx, status=TransactionStatus.ACCEPTED, retries=600, interval=5000)
+    gl_wait(client, tx, retries=600, interval=5000)
     v = client.read_contract(address=dep["verify_job"], function_name="get_verdict", args=[st["job_id"]])
     st["verdict"] = json.loads(json.dumps(v, default=str))
     st["accepted_after_s"] = round(time.time() - t0)

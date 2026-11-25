@@ -11,9 +11,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from gzgl.billing import policy_hash  # noqa: E402
-from gzgl.net import DEPLOYMENTS, genlayer_client  # noqa: E402
-
-from genlayer_py.types import TransactionStatus  # noqa: E402
+from gzgl.net import DEPLOYMENTS, genlayer_client, gl_wait, gl_write  # noqa: E402
 
 ap = argparse.ArgumentParser()
 ap.add_argument("--network", default="studionet")
@@ -26,8 +24,7 @@ dep = json.loads(out.read_text())
 client = genlayer_client(a.network)
 for p in map(Path, a.policy):
     h = policy_hash(json.loads(p.read_text()))
-    tx = client.write_contract(address=dep["cost_dispute"], function_name="set_policy", args=[h, not a.revoke])
-    client.wait_for_transaction_receipt(transaction_hash=tx, status=TransactionStatus.ACCEPTED, retries=200)
+    gl_wait(client, gl_write(client, dep["cost_dispute"], "set_policy", [h, not a.revoke]))
     if a.revoke:
         dep["cost_dispute_policies"].pop(p.stem, None)
     else:

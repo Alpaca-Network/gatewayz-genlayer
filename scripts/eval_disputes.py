@@ -73,9 +73,7 @@ def offline(cases, policy_json, sheet):
 
 
 def network(cases, policy_json, args):
-    from genlayer_py.types import TransactionStatus
-
-    from gzgl.net import DEPLOYMENTS, genlayer_client
+    from gzgl.net import DEPLOYMENTS, genlayer_client, gl_status, gl_wait, gl_write
 
     ref = args.ref or subprocess.check_output(["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True).strip()
     pushed = subprocess.run(["git", "-C", str(ROOT), "branch", "-r", "--contains", ref], capture_output=True, text=True)
@@ -106,13 +104,12 @@ def network(cases, policy_json, args):
         t0 = time.time()
         rec = {"n": n, "dispute_id": dispute_id, "lines": len(batch)}
         try:
-            tx = retry(lambda: client.write_contract(address=dep["cost_dispute"], function_name="open_dispute",
-                                       args=[dispute_id, ep.epoch_id, root, policy_json, f"{base}/prices.json",
-                                             entries[0]["price_sheet"], json.dumps(lines)]))
+            tx = retry(lambda: gl_write(client, dep["cost_dispute"], "open_dispute",
+                                        [dispute_id, ep.epoch_id, root, policy_json, f"{base}/prices.json",
+                                         entries[0]["price_sheet"], json.dumps(lines)]))
             rec["tx"] = tx
-            r = retry(lambda: client.wait_for_transaction_receipt(
-                transaction_hash=tx, status=TransactionStatus.ACCEPTED, retries=args.retries))
-            rec["status"] = r.get("status_name") or "ACCEPTED"
+            r = retry(lambda: gl_wait(client, tx, retries=args.retries))
+            rec["status"] = gl_status(r)
             v = retry(lambda: client.read_contract(address=dep["cost_dispute"], function_name="get_dispute",
                                                    args=[dispute_id]))
             for line in v["lines"]:
