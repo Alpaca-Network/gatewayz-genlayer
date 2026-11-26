@@ -33,6 +33,16 @@ class VerdictError(RuntimeError):
 
 
 class VerdictSource(Protocol):
+    def finalized_verdict(self, job_id: str, gl_tx: str) -> dict | None: ...
+
+
+class GenLayerVerdicts:
+    """Reads verdicts from a deployed VerifyJob, finalized state only."""
+
+    def __init__(self, client, verify_address: str):
+        self.client = client
+        self.verify_address = verify_address
+
     def finalized_verdict(self, job_id: str, gl_tx: str) -> dict | None:
         from genlayer_py.types import TransactionHashVariant
 
