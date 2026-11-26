@@ -1,5 +1,5 @@
-# v0.5.0
-# { "Depends": "py-genlayer:1jb45aa8ynh2a9c9xn3b7qqh8sm5q93hwfp7jqmwsfhh8jpz09h6" }
+# v0.6.0 (GenVM v0.4; v0.5.0 was the last GenVM v0.2 build)
+# { "Depends": "py-genlayer:kzybg95x1gn21dw72m7hyg0maaap04n4nx55j9yt6fkdqxtz6bz0" }
 
 """CostDispute — rules on whether billed inference cost too much for the output delivered.
 
@@ -26,7 +26,9 @@ import hashlib
 import json
 from dataclasses import dataclass
 
-from genlayer import *
+import genlayer as gl
+from genlayer.storage import DynArray, TreeMap, allow
+from genlayer.types import *
 
 VERDICT_SCHEMA_VERSION = 1
 NANO = 10**9
@@ -52,7 +54,7 @@ PRICE_SHEET_HASH_MISMATCH = "price_sheet_hash_mismatch"
 ZERO_HASH = "0x" + "00" * 32  # as price_sheet_hash: each line names its own sheet
 
 
-@allow_storage
+@allow
 @dataclass
 class Dispute:
     dispute_id: str
@@ -324,7 +326,7 @@ def results_agree(policy: dict, leader, mine: dict) -> bool:
 # ------------------------------------------------------------ contract
 
 
-class CostDispute(gl.Contract):
+class CostDispute(gl.contract.Contract):
     owner: Address
     submitters: TreeMap[Address, bool]
     disputes: TreeMap[str, Dispute]
@@ -488,7 +490,7 @@ class CostDispute(gl.Contract):
                 return False
             return results_agree(policy, leader_result.calldata, leader_fn())
 
-        verdict = gl.vm.run_nondet_unsafe(leader_fn, validator_fn)
+        verdict = gl.vm.run_nondet(leader_fn, validator_fn)
         if verdict["error"]:
             raise gl.vm.UserError(verdict["error"])
 
