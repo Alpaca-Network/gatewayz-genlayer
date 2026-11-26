@@ -22,26 +22,39 @@ class _Generic:
         return cls
 
 
+STUB_MODULES = ("genlayer", "genlayer.storage", "genlayer.types")
+
+
 def load_contract(relpath: str):
-    stub = types.ModuleType("genlayer")
+    """Covers the GenVM v0.4 layout the contracts use (`import genlayer as gl`,
+    `from genlayer.storage import ...`, `from genlayer.types import *`)."""
     passthrough = lambda f: f  # noqa: E731
-    stub.gl = types.SimpleNamespace(
-        vm=types.SimpleNamespace(UserError=UserError),
-        public=types.SimpleNamespace(write=passthrough, view=passthrough),
-        Contract=object,
-    )
-    stub.allow_storage = lambda c: c
-    stub.Address = stub.TreeMap = stub.DynArray = _Generic
-    stub.__all__ = ["gl", "allow_storage", "Address", "TreeMap", "DynArray"]
-    saved = sys.modules.get("genlayer")
-    sys.modules["genlayer"] = stub
+    stub = types.ModuleType("genlayer")
+    stub.__path__ = []  # a package, so its submodules import
+    stub.vm = types.SimpleNamespace(UserError=UserError)
+    stub.public = types.SimpleNamespace(write=passthrough, view=passthrough)
+    stub.contract = types.SimpleNamespace(Contract=object)
+
+    storage = types.ModuleType("genlayer.storage")
+    storage.allow = passthrough
+    storage.TreeMap = storage.DynArray = _Generic
+
+    gtypes = types.ModuleType("genlayer.types")
+    gtypes.Address = _Generic
+    gtypes.u8 = gtypes.u256 = int
+    gtypes.__all__ = ["Address", "u8", "u256"]
+
+    stub.storage, stub.types = storage, gtypes
+    saved = {name: sys.modules.get(name) for name in STUB_MODULES}
+    sys.modules.update({"genlayer": stub, "genlayer.storage": storage, "genlayer.types": gtypes})
     try:
         spec = importlib.util.spec_from_file_location(Path(relpath).stem, ROOT / relpath)
         mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(mod)
         return mod
     finally:
-        if saved is None:
-            del sys.modules["genlayer"]
-        else:
-            sys.modules["genlayer"] = saved
+        for name, module in saved.items():
+            if module is None:
+                del sys.modules[name]
+            else:
+                sys.modules[name] = module

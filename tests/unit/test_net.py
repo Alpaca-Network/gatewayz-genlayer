@@ -68,3 +68,24 @@ def test_gl_wait_accepts_and_passes_through():
 def test_gl_wait_rejects(tx, msg):
     with pytest.raises(GenLayerTxError, match=msg):
         gl_wait(FakeClient(tx), "0x01")
+
+
+def test_gl_wait_rejects_execution_error():
+    tx = {"lifecycle": {"state": "decided", "outcome": "accepted"}, "result_name": "MAJORITY_AGREE",
+          "tx_execution_result_name": "FINISHED_WITH_ERROR"}
+    with pytest.raises(GenLayerTxError, match="executed FINISHED_WITH_ERROR"):
+        gl_wait(FakeClient(tx), "0x01")
+
+
+def test_gas_estimates_send_chain_id_as_hex():
+    from types import SimpleNamespace
+
+    from gzgl.net import _hex_chain_id_in_gas_estimates
+
+    sent = []
+    client = SimpleNamespace(provider=SimpleNamespace(make_request=lambda m, p: sent.append((m, p)) or {"result": "0x1"}))
+    _hex_chain_id_in_gas_estimates(client)
+    client.provider.make_request("eth_estimateGas", [{"chainId": 4221, "to": "0xab"}])
+    client.provider.make_request("eth_getBalance", [{"chainId": 4221}])
+    assert sent[0] == ("eth_estimateGas", [{"chainId": "0x107d", "to": "0xab"}])
+    assert sent[1] == ("eth_getBalance", [{"chainId": 4221}])  # only gas estimates are touched

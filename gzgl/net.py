@@ -28,7 +28,26 @@ def genlayer_client(network: str, role: str = "OPERATOR"):
     chains = {"localnet": localnet, "studionet": studionet, "bradbury": testnet_bradbury}
     if network not in chains:
         raise SystemExit(f"unknown GenLayer network {network}; pick one of {sorted(chains)}")
-    return create_client(chain=chains[network], account=create_account(key(role)))
+    client = create_client(chain=chains[network], account=create_account(key(role)))
+    _hex_chain_id_in_gas_estimates(client)
+    return client
+
+
+def _hex_chain_id_in_gas_estimates(client) -> None:
+    """genlayer-py 0.19.1 puts `chainId` into eth_estimateGas as a plain int. Studio accepts
+    that; Bradbury's node rejects every write and deploy with `cannot unmarshal non-string
+    into Go struct field TransactionArgs.chainId of type *hexutil.Big`. Send it as hex.
+    Remove once genlayer-py does (contracts/actions.py::_prepare_transaction)."""
+    make_request = client.provider.make_request
+
+    def patched(method, params, *args, **kwargs):
+        if method == "eth_estimateGas" and params and isinstance(params[0], dict):
+            chain_id = params[0].get("chainId")
+            if isinstance(chain_id, int):
+                params = [dict(params[0], chainId=hex(chain_id)), *params[1:]]
+        return make_request(method, params, *args, **kwargs)
+
+    client.provider.make_request = patched
 
 
 # ------------------------------------------------------------ GenLayer writes (consensus v0.6)
@@ -129,6 +148,11 @@ def gl_wait(client, tx: str, finalized: bool = False, retries: int = 200, interv
     rollback = gl_rollback(t)
     if rollback is not None:
         raise GenLayerTxError(f"tx {tx} rolled back: {rollback}")
+    # GenLayer: success = ACCEPTED/FINALIZED *and* FINISHED_WITH_RETURN. A tx can reach
+    # MAJORITY_AGREE and still have executed with an error (Bradbury, 2026-11-05).
+    execution = t.get("tx_execution_result_name")
+    if execution is not None and str(execution) != "FINISHED_WITH_RETURN":
+        raise GenLayerTxError(f"tx {tx} executed {execution}")
     return t
 
 

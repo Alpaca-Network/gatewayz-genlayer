@@ -1,5 +1,5 @@
-# v0.2.0
-# { "Depends": "py-genlayer:1jb45aa8ynh2a9c9xn3b7qqh8sm5q93hwfp7jqmwsfhh8jpz09h6" }
+# v0.3.0 (GenVM v0.4; v0.2.0 was the last GenVM v0.2 build)
+# { "Depends": "py-genlayer:kzybg95x1gn21dw72m7hyg0maaap04n4nx55j9yt6fkdqxtz6bz0" }
 
 """VerifyJob — adjudicates one finished agent job against a buyer-written rubric.
 
@@ -22,7 +22,9 @@ import hashlib
 import json
 from dataclasses import dataclass
 
-from genlayer import *
+import genlayer as gl
+from genlayer.storage import DynArray, TreeMap, allow
+from genlayer.types import *
 
 VERDICT_SCHEMA_VERSION = 1
 MAX_DELIVERABLE_CHARS = 24_000
@@ -36,7 +38,7 @@ SPEC_HASH_MISMATCH = "spec_hash_mismatch"
 SPEC_FETCH_FAILED = "spec_fetch_failed"
 
 
-@allow_storage
+@allow
 @dataclass
 class Case:
     job_id: str
@@ -161,7 +163,7 @@ def verdicts_agree(rubric: dict, leader: dict, mine: dict) -> bool:
         return False
 
 
-class VerifyJob(gl.Contract):
+class VerifyJob(gl.contract.Contract):
     owner: Address
     cases: TreeMap[str, Case]
     case_ids: DynArray[str]
@@ -174,7 +176,7 @@ class VerifyJob(gl.Contract):
         self.owner = gl.message.sender_address
         self.submitters[gl.message.sender_address] = True
         self.bridge_sender = Address(bridge_sender) if bridge_sender else Address(b"\x00" * 20)
-        self.target_eid = u256(target_eid)
+        self.target_eid = int(target_eid)
         self.escrow_address = escrow_address
 
     # ---------------------------------------------------------------- admin
@@ -192,7 +194,7 @@ class VerifyJob(gl.Contract):
     def set_route(self, bridge_sender: str, target_eid: int, escrow_address: str) -> None:
         self._only_owner()
         self.bridge_sender = Address(bridge_sender) if bridge_sender else Address(b"\x00" * 20)
-        self.target_eid = u256(target_eid)
+        self.target_eid = int(target_eid)
         self.escrow_address = escrow_address
 
     # ---------------------------------------------------------------- cases
@@ -255,7 +257,7 @@ class VerifyJob(gl.Contract):
                 return False
             return verdicts_agree(rubric, leader_result.calldata, leader_fn())
 
-        verdict = gl.vm.run_nondet_unsafe(leader_fn, validator_fn)
+        verdict = gl.vm.run_nondet(leader_fn, validator_fn)
 
         self.cases[job_id] = Case(
             job_id=job_id,
@@ -268,7 +270,7 @@ class VerifyJob(gl.Contract):
             rubric_hash=rubric_hash,
             rubric=rubric_canon,
             passed=bool(verdict["passed"]),
-            score=u256(int(verdict["score"])),
+            score=int(int(verdict["score"])),
             reasons=json.dumps(verdict["reasons"]),
             relayed=False,
         )
@@ -290,7 +292,7 @@ class VerifyJob(gl.Contract):
             raise gl.vm.UserError("bridge_not_configured")
         c.relayed = True
         payload = self.verdict_payload(job_id)
-        bridge = gl.get_contract_at(self.bridge_sender)
+        bridge = gl.contract.get_at(self.bridge_sender)
         bridge.emit().send_message(int(self.target_eid), self.escrow_address, payload)
 
     # ---------------------------------------------------------------- views
