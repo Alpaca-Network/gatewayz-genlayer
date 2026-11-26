@@ -20,6 +20,8 @@ from typing import Protocol
 
 from web3 import Web3
 
+from gzgl.net import gl_status
+
 log = logging.getLogger("gzgl.relayer")
 
 ABI_PATH = Path(__file__).parent / "abi" / "InferenceEscrow.json"
@@ -31,6 +33,16 @@ class VerdictError(RuntimeError):
 
 
 class VerdictSource(Protocol):
+    def finalized_verdict(self, job_id: str, gl_tx: str) -> dict | None: ...
+
+
+class GenLayerVerdicts:
+    """Reads verdicts from a deployed VerifyJob, finalized state only."""
+
+    def __init__(self, client, verify_address: str):
+        self.client = client
+        self.verify_address = verify_address
+
     def finalized_verdict(self, job_id: str, gl_tx: str) -> dict | None:
         from genlayer_py.types import TransactionHashVariant
 
@@ -75,7 +87,7 @@ def finalized_tx(client, gl_tx: str, address: str, name: str) -> bool:
     tx = client.get_transaction(transaction_hash=gl_tx)
     if tx is None:
         return False
-    status = str(tx.get("status_name") or "")
+    status = gl_status(tx)
     if status in ("CANCELED", "UNDETERMINED", "VALIDATORS_TIMEOUT"):
         raise VerdictError(f"case tx {gl_tx} ended {status}")
     if status != "FINALIZED":

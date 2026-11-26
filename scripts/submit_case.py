@@ -16,9 +16,7 @@ import urllib.request
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from gzgl.net import DEPLOYMENTS, genlayer_client  # noqa: E402
-
-from genlayer_py.types import TransactionStatus  # noqa: E402
+from gzgl.net import DEPLOYMENTS, genlayer_client, gl_status, gl_wait, gl_write  # noqa: E402
 
 ap = argparse.ArgumentParser()
 ap.add_argument("--network", default="studionet")
@@ -39,14 +37,11 @@ print(f"deliverable {len(body)} bytes sha256 {dhash}")
 
 client = genlayer_client(a.network)
 t0 = time.time()
-tx = client.write_contract(
-    address=dep["verify_job"], function_name="submit_case",
-    args=[a.job_id, a.spec_uri, spec_hash, a.deliverable_uri, dhash, a.usage_root, rubric],
-)
+tx = gl_write(client, dep["verify_job"], "submit_case",
+              [a.job_id, a.spec_uri, spec_hash, a.deliverable_uri, dhash, a.usage_root, rubric])
 print("case tx", tx)
-status = TransactionStatus.FINALIZED if a.finalized else TransactionStatus.ACCEPTED
-r = client.wait_for_transaction_receipt(transaction_hash=tx, status=status, retries=600, interval=5000)
-print(f"{status.value} after {time.time() - t0:.0f}s; execution: {r.get('tx_execution_result_name')}")
+r = gl_wait(client, tx, finalized=a.finalized, retries=600, interval=5000)
+print(f"{gl_status(r)} after {time.time() - t0:.0f}s; execution: {r.get('tx_execution_result_name')}")
 verdict = client.read_contract(address=dep["verify_job"], function_name="get_verdict", args=[a.job_id])
 verdict = dict(verdict, genlayer_tx=tx)
 print(json.dumps(verdict, indent=2, default=str))

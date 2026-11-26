@@ -21,9 +21,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from gzgl import billing as b  # noqa: E402
-from gzgl.net import DEPLOYMENTS, genlayer_client  # noqa: E402
-
-from genlayer_py.types import TransactionStatus  # noqa: E402
+from gzgl.net import DEPLOYMENTS, genlayer_client, gl_status, gl_wait, gl_write  # noqa: E402
 
 SHEET = {"version": "smoke", "models": {"openai/gpt-5-mini": {"in_per_mtok": "0.25", "out_per_mtok": "2"}}}
 MESSAGES = [{"role": "user", "content": "Write a haiku about rain."}]
@@ -75,12 +73,10 @@ lines = [{"index": i, "entry": ep.entries[i], "proof": ep.proof(i),
 client = genlayer_client(a.network)
 dispute_id = "0x" + os.urandom(32).hex()
 policy_json = (ROOT / "policies/fbp-v4.json").read_text()
-tx = client.write_contract(
-    address=dep["cost_dispute"], function_name="open_dispute",
-    args=[dispute_id, epoch_id, ep.seal()["root"], policy_json, sheet_url, sheet_hash, json.dumps(lines)],
-)
+tx = gl_write(client, dep["cost_dispute"], "open_dispute",
+              [dispute_id, epoch_id, ep.seal()["root"], policy_json, sheet_url, sheet_hash, json.dumps(lines)])
 print("tx", tx)
-r = client.wait_for_transaction_receipt(transaction_hash=tx, status=TransactionStatus.ACCEPTED, retries=200)
-print("consensus:", (r.get("consensus_data") or {}).get("final", r.get("status_name")))
+r = gl_wait(client, tx)
+print("consensus:", gl_status(r), r.get("result_name"))
 v = client.read_contract(address=dep["cost_dispute"], function_name="get_dispute", args=[dispute_id])
 print(json.dumps(v, indent=2, default=str))
