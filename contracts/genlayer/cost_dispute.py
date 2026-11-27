@@ -1,4 +1,4 @@
-# v0.6.0 (GenVM v0.4; v0.5.0 was the last GenVM v0.2 build)
+# v0.6.1 (GenVM v0.4; v0.5.0 was the last GenVM v0.2 build)
 # { "Depends": "py-genlayer:kzybg95x1gn21dw72m7hyg0maaap04n4nx55j9yt6fkdqxtz6bz0" }
 
 """CostDispute — rules on whether billed inference cost too much for the output delivered.
@@ -303,6 +303,19 @@ def parse_judgment(policy: dict, raw, items: list) -> dict:
     return out
 
 
+def valid_judgment(policy: dict, x: dict) -> bool:
+    """A leader's model judgment for one line, in the exact shape an honest leader produces:
+    a real bucket index (never negative, bool or out of range: buckets[-1] would be the
+    largest refund), a known category, bucket 0 for "none", and a bounded reason."""
+    b = x.get("bucket")
+    if isinstance(b, bool) or not isinstance(b, int) or not 0 <= b < len(policy["refund_buckets_bps"]):
+        return False
+    if x.get("category") not in CATEGORIES or (x.get("category") == "none" and b != 0):
+        return False
+    reason = x.get("reason")
+    return isinstance(reason, str) and len(reason) <= 280
+
+
 def results_agree(policy: dict, leader, mine: dict) -> bool:
     if not isinstance(leader, dict) or leader.get("error") != mine["error"]:
         return False
@@ -310,15 +323,15 @@ def results_agree(policy: dict, leader, mine: dict) -> bool:
     if not isinstance(a, list) or len(a) != len(b):
         return False
     for x, y in zip(a, b):
-        if not isinstance(x, dict):
+        # Same keys as our own result: no extra fields smuggled into the stored verdict.
+        if not isinstance(x, dict) or set(x) != set(y):
             return False
         for k in ("line", "content_ok", "det_bps", "det_reason"):
             if x.get(k) != y[k]:
                 return False
-        try:
-            if abs(int(x.get("bucket")) - y["bucket"]) > policy["bucket_tolerance"]:
-                return False
-        except Exception:
+        if not valid_judgment(policy, x):
+            return False
+        if abs(x["bucket"] - y["bucket"]) > policy["bucket_tolerance"]:
             return False
     return True
 
@@ -331,7 +344,8 @@ class CostDispute(gl.contract.Contract):
     submitters: TreeMap[Address, bool]
     disputes: TreeMap[str, Dispute]
     dispute_ids: DynArray[str]
-    disputed_lines: TreeMap[str, str]  # "<usage_root>:<index>" -> dispute_id
+    disputed_lines: TreeMap[str, str]  # "<usage_root>:<index>" -> dispute_id (view only)
+    disputed_leaves: TreeMap[str, str]  # "<usage_root>:<leaf hash>" -> dispute_id (enforced)
     policies: TreeMap[str, bool]  # policy_hash -> accepted
 
     def __init__(self):
@@ -407,6 +421,8 @@ class CostDispute(gl.contract.Contract):
             raise gl.vm.UserError("invalid_lines: count")
         root = bytes.fromhex(usage_root[2:])
         seen = set()
+        seen_leaves = set()
+        leaf_keys = {}
         items = []
         for ln in lines:
             if not isinstance(ln, dict):
@@ -417,7 +433,8 @@ class CostDispute(gl.contract.Contract):
             seen.add(idx)
             if not isinstance(proof, list) or not all(_is_hex32(p) for p in proof) or len(proof) > 64:
                 raise gl.vm.UserError("invalid_lines: proof")
-            if not verify_proof(leaf_hash(entry), [bytes.fromhex(p[2:]) for p in proof], root):
+            leaf = leaf_hash(entry)
+            if not verify_proof(leaf, [bytes.fromhex(p[2:]) for p in proof], root):
                 raise gl.vm.UserError("line_not_in_epoch")
             if per_line_sheets:
                 if not _is_hex32(entry["price_sheet"]) or str(entry["price_sheet"]).lower() == ZERO_HASH:
@@ -426,6 +443,13 @@ class CostDispute(gl.contract.Contract):
                 raise gl.vm.UserError("price_sheet_mismatch")
             if not _is_hex32(entry["content_hash"]):
                 raise gl.vm.UserError("invalid_entry: content_hash")
+            # The proof does not bind the index (sorted-pair hashing), so a line is identified
+            # by its leaf: the same usage line under another index is the same line.
+            leaf_key = usage_root + ":0x" + leaf.hex()
+            if leaf_key in seen_leaves or leaf_key in self.disputed_leaves:
+                raise gl.vm.UserError("line_already_disputed")
+            seen_leaves.add(leaf_key)
+            leaf_keys[idx] = leaf_key
             if (usage_root + ":" + str(idx)) in self.disputed_lines:
                 raise gl.vm.UserError("line_already_disputed")
             uri = ln.get("content_uri") or ""
@@ -499,14 +523,20 @@ class CostDispute(gl.contract.Contract):
         billed_total = refund_total = 0
         out = []
         for r in verdict["lines"]:
+            # Validators already required this shape; check again before money math, and
+            # keep only the known fields (never anything else the leader returned).
+            if r.get("line") not in entries or not valid_judgment(policy, r):
+                raise gl.vm.UserError("invalid_verdict")
+            r = {k: r[k] for k in ("line", "content_ok", "det_bps", "det_reason", "category", "bucket", "reason")}
             billed = to_nano(entries[r["line"]]["cost_usd"])
-            bps = max(int(r["det_bps"]), buckets[int(r["bucket"])])
+            bps = max(int(r["det_bps"]), buckets[r["bucket"]])
             refund = billed * bps // 10_000
             billed_total += billed
             refund_total += refund
             out.append({**r, "request_id": entries[r["line"]]["request_id"], "billed_usd": nano_to_usd(billed),
                         "refund_bps": bps, "refund_usd": nano_to_usd(refund)})
             self.disputed_lines[usage_root + ":" + str(r["line"])] = dispute_id
+            self.disputed_leaves[leaf_keys[r["line"]]] = dispute_id
 
         self.disputes[dispute_id] = Dispute(
             dispute_id=dispute_id,
