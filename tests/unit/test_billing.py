@@ -187,7 +187,8 @@ def test_missing_line_is_an_llm_error():
 
 
 def _res(**kw):
-    r = {"line": 0, "content_ok": True, "det_bps": 0, "det_reason": "none", "category": "degenerate", "bucket": 2}
+    r = {"line": 0, "content_ok": True, "det_bps": 0, "det_reason": "none", "category": "degenerate", "bucket": 2,
+         "reason": ""}
     r.update(kw)
     return {"error": "", "lines": [r]}
 

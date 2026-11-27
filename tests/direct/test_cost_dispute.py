@@ -213,3 +213,18 @@ def test_watchdog_timeout_is_a_billed_failure(c, direct_vm):
     direct_vm.mock_llm(r".*", json.dumps({"lines": [{"line": 0, "category": "none", "bucket": 0, "reason": ""}]}))
     v = open_dispute(c, ep, [line(ep, 0, reveal=False)])
     assert v["lines"][0]["det_reason"] == "billed_failure" and v["lines"][0]["refund_bps"] == 10_000
+
+
+# --------------------------------------------------------------------------- v0.6.1
+
+
+def test_same_line_under_another_index_is_the_same_line(c, direct_vm, epoch):
+    """The proof does not bind the index, so line 0 re-sent as index 7 must be refused,
+    both inside one dispute and in a later one."""
+    direct_vm.mock_llm(r"impartial billing adjudicator", llm((0, "none", 0)))
+    same = dict(line(epoch, 0), index=7)
+    with direct_vm.expect_revert("line_already_disputed"):
+        open_dispute(c, epoch, [line(epoch, 0), same])
+    open_dispute(c, epoch, [line(epoch, 0)])
+    with direct_vm.expect_revert("line_already_disputed"):
+        open_dispute(c, epoch, [same], dispute="0x" + "d3" * 32)
